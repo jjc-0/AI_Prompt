@@ -6,7 +6,6 @@ import com.ecommerce.agent.model.ConversationSession;
 import com.ecommerce.agent.repository.ConversationRecordRepository;
 import com.ecommerce.agent.repository.ConversationSessionRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -21,11 +20,14 @@ public class ConversationManager {
     private final Map<String, Deque<ConversationMessage>> sessions = new ConcurrentHashMap<>();
     private static final int MAX_HISTORY_SIZE = 20;
 
-    @Autowired(required = false)
-    private ConversationRecordRepository recordRepository;
+    private final ConversationRecordRepository recordRepository;
+    private final ConversationSessionRepository sessionRepository;
 
-    @Autowired(required = false)
-    private ConversationSessionRepository sessionRepository;
+    public ConversationManager(ConversationRecordRepository recordRepository,
+                               ConversationSessionRepository sessionRepository) {
+        this.recordRepository = recordRepository;
+        this.sessionRepository = sessionRepository;
+    }
 
     private boolean isDbAvailable() {
         return recordRepository != null && sessionRepository != null;

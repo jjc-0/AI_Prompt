@@ -145,7 +145,6 @@ public class PromptTemplateManager {
                         3. 关键词保留情况
                         """)
                 .variables(List.of("sourceLanguage", "targetLanguage", "context", "text"))
-                .category("translation")
                 .active(true)
                 .build());
 
@@ -181,7 +180,6 @@ public class PromptTemplateManager {
                         """)
                 .variables(List.of("productName", "sellingPoints", "targetCountry", "language", "style"))
                 .targetPlatform("Email/询盘系统")
-                .category("copywriting")
                 .active(true)
                 .build());
 
@@ -232,7 +230,6 @@ public class PromptTemplateManager {
                         使用结构化的Markdown格式输出，包含明确的结论和建议。
                         """)
                 .variables(List.of("targetCountry", "productName", "productDescription", "priceRange", "category"))
-                .category("analysis")
                 .active(true)
                 .build());
 
@@ -306,7 +303,6 @@ public class PromptTemplateManager {
                         """)
                 .variables(List.of("productName", "sellingPoints", "targetCountry", "platform", "language"))
                 .targetPlatform("任意")
-                .category("copywriting")
                 .active(true)
                 .build());
     }

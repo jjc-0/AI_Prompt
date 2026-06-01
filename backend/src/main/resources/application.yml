@@ -21,13 +21,6 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/ecommerce_agent}
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      timeout: 3000ms
   h2:
     console:
       enabled: true
@@ -51,6 +44,11 @@ ai:
     max-conversation-rounds: 10
     context-window-size: 20
     tool-call-timeout: 30000
+  rag:
+    max-results: 5
+    min-score: 0.6
+    knowledge-base-path: classpath:/knowledge/
+    augment-prompt: true
 
 tools:
   search:

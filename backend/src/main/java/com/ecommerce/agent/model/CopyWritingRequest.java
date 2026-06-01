@@ -1,5 +1,6 @@
 package com.ecommerce.agent.model;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CopyWritingRequest {
+    @NotBlank(message = "产品名称不能为空")
     private String productName;
     private String sellingPoints;
     private String targetCountry;

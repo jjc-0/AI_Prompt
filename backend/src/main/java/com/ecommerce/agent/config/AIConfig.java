@@ -43,6 +43,16 @@ public class AIConfig {
         private long toolCallTimeout;
     }
 
+    @Data
+    public static class Rag {
+        private int maxResults = 5;
+        private double minScore = 0.6;
+        private String knowledgeBasePath = "classpath:/knowledge/";
+        private boolean augmentPrompt = true;
+    }
+
+    private Rag rag = new Rag();
+
     public boolean isDeepSeekKeyConfigured() {
         String key = providers.getDeepseek().getApiKey();
         if (key == null || key.isBlank()) return false;

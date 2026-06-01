@@ -1,5 +1,6 @@
 package com.ecommerce.agent.service;
 
+import com.ecommerce.agent.util.CountryLanguageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -8,8 +9,8 @@ import org.springframework.stereotype.Component;
 public class DemoResponseService {
 
     public String generateCopywritingDemo(String productName, String sellingPoints, String platform, String targetCountry) {
-        String country = resolveCountry(targetCountry);
-        String lang = resolveLanguage(targetCountry);
+        String country = CountryLanguageUtil.resolveCountryName(targetCountry);
+        String lang = CountryLanguageUtil.resolveLanguage(targetCountry);
         String productType = sellingPoints != null && !sellingPoints.isBlank() ? sellingPoints : "cardboard display stand";
 
         if ("alibaba".equalsIgnoreCase(platform) || "bulk".equalsIgnoreCase(platform)) {
@@ -152,7 +153,7 @@ public class DemoResponseService {
     }
 
     public String generateAnalysisDemo(String productName, String targetCountry) {
-        String country = resolveCountry(targetCountry);
+        String country = CountryLanguageUtil.resolveCountryName(targetCountry);
         return String.format("""
                 📊 展示架市场分析报告 (演示模式)
 
@@ -187,30 +188,5 @@ public class DemoResponseService {
                 📌 提示: 配置 DeepSeek API Key 后可获得真正的 AI 市场分析。
                 编辑 application-secrets.yml 中的 DEEPSEEK_API_KEY 即可。
                 """, productName, country, country, country);
-    }
-
-    private String resolveCountry(String code) {
-        if (code == null) return "美国";
-        return switch (code.toUpperCase()) {
-            case "US" -> "美国";
-            case "UK" -> "英国";
-            case "JP" -> "日本";
-            case "DE" -> "德国";
-            case "FR" -> "法国";
-            case "KR" -> "韩国";
-            case "AU" -> "澳大利亚";
-            default -> code;
-        };
-    }
-
-    private String resolveLanguage(String code) {
-        if (code == null) return "English";
-        return switch (code.toUpperCase()) {
-            case "JP" -> "Japanese";
-            case "DE" -> "German";
-            case "FR" -> "French";
-            case "KR" -> "Korean";
-            default -> "English";
-        };
     }
 }

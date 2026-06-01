@@ -7,6 +7,7 @@ import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.AgentRequest;
 import com.ecommerce.agent.model.AgentResponse;
 import com.ecommerce.agent.model.ConversationMessage;
+import com.ecommerce.agent.rag.RAGService;
 import com.ecommerce.agent.tool.Tool;
 import com.ecommerce.agent.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,18 +29,21 @@ public class AgentDispatcher {
     private final ConversationManager conversationManager;
     private final ToolRegistry toolRegistry;
     private final AIConfig aiConfig;
+    private final RAGService ragService;
     private final ObjectMapper objectMapper;
 
     public AgentDispatcher(MultiModelOrchestrator orchestrator,
                            PromptTemplateManager promptManager,
                            ConversationManager conversationManager,
                            ToolRegistry toolRegistry,
-                           AIConfig aiConfig) {
+                           AIConfig aiConfig,
+                           RAGService ragService) {
         this.orchestrator = orchestrator;
         this.promptManager = promptManager;
         this.conversationManager = conversationManager;
         this.toolRegistry = toolRegistry;
         this.aiConfig = aiConfig;
+        this.ragService = ragService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -73,6 +77,9 @@ public class AgentDispatcher {
         }
 
         String systemPrompt = buildSystemPrompt(request);
+        String ragAugmented = ragService.augmentPrompt(request.getMessage());
+        String effectiveMessage = ragAugmented != null ? ragAugmented : request.getMessage();
+
         String response;
         if (request.getHistory() != null && !request.getHistory().isEmpty()) {
             List<Map<String, String>> fullHistory = new ArrayList<>();
@@ -82,7 +89,7 @@ public class AgentDispatcher {
             }
             response = provider.chatCompletionWithHistory(systemPrompt, fullHistory).join();
         } else {
-            response = provider.chatCompletion(systemPrompt, request.getMessage()).join();
+            response = provider.chatCompletion(systemPrompt, effectiveMessage).join();
         }
 
         conversationManager.addMessage(sessionId, "assistant", response, modelUsed,
@@ -156,8 +163,10 @@ public class AgentDispatcher {
                                             LLMProvider provider, String modelUsed, long startTime) {
         List<Map<String, Object>> toolDefs = toolRegistry.getToolDefinitionsForLLM();
 
-        String systemPrompt = buildAgentSystemPrompt(toolDefs);
-        String response = provider.chatCompletionWithTools(systemPrompt, request.getMessage(), toolDefs).join();
+        String systemPrompt = buildAgentSystemPrompt(request, toolDefs);
+        String ragAugmentedMsg = ragService.augmentPrompt(request.getMessage());
+        String effectiveMsg = ragAugmentedMsg != null ? ragAugmentedMsg : request.getMessage();
+        String response = provider.chatCompletionWithTools(systemPrompt, effectiveMsg, toolDefs).join();
 
         List<AgentResponse.ToolCallRecord> toolCallRecords = new ArrayList<>();
 
@@ -247,10 +256,14 @@ public class AgentDispatcher {
         return promptManager.renderTemplate("agent-system", vars);
     }
 
-    private String buildAgentSystemPrompt(List<Map<String, Object>> toolDefs) {
+    private String buildAgentSystemPrompt(AgentRequest request, List<Map<String, Object>> toolDefs) {
         Map<String, String> vars = new HashMap<>();
-        vars.put("targetCountry", "US");
-        vars.put("language", "English");
+        vars.put("targetCountry", request.getParameters() != null
+                ? (String) request.getParameters().getOrDefault("targetCountry", "US")
+                : "US");
+        vars.put("language", request.getParameters() != null
+                ? (String) request.getParameters().getOrDefault("language", "English")
+                : "English");
 
         StringBuilder toolsDesc = new StringBuilder();
         for (Map<String, Object> def : toolDefs) {

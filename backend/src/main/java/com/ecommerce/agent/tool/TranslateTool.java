@@ -69,19 +69,21 @@ public class TranslateTool implements Tool {
     public CompletableFuture<String> execute(Map<String, Object> params) {
         return CompletableFuture.supplyAsync(() -> {
             String text = (String) params.getOrDefault("text", "");
+            String from = (String) params.getOrDefault("from", "zh");
             String to = (String) params.getOrDefault("to", "en");
 
-            String fromLang = DICTIONARY_TEMPLATES.getOrDefault(to, "Unknown");
+            String fromLang = DICTIONARY_TEMPLATES.getOrDefault(from, "Unknown");
             String toLang = DICTIONARY_TEMPLATES.getOrDefault(to, "Unknown");
 
             return String.format("""
                     🌐 翻译请求已接收:
                     - 原文: %s
+                    - 源语言: %s
                     - 目标语言: %s
                     
                     💡 提示: 完整的AI翻译功能需要结合LLM来实现电商本地化翻译。
                     请使用 /api/translate 接口进行AI驱动的电商本地化翻译。
-                    """, text, toLang);
+                    """, text, fromLang, toLang);
         });
     }
 }

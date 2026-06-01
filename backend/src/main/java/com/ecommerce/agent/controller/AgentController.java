@@ -5,6 +5,7 @@ import com.ecommerce.agent.agent.ConversationManager;
 import com.ecommerce.agent.model.AgentRequest;
 import com.ecommerce.agent.model.AgentResponse;
 import com.ecommerce.agent.model.ConversationRecord;
+import com.ecommerce.agent.rag.RAGService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +19,14 @@ public class AgentController {
 
     private final AgentDispatcher agentDispatcher;
     private final ConversationManager conversationManager;
+    private final RAGService ragService;
 
-    public AgentController(AgentDispatcher agentDispatcher, ConversationManager conversationManager) {
+    public AgentController(AgentDispatcher agentDispatcher,
+                           ConversationManager conversationManager,
+                           RAGService ragService) {
         this.agentDispatcher = agentDispatcher;
         this.conversationManager = conversationManager;
+        this.ragService = ragService;
     }
 
     @PostMapping("/chat")
@@ -35,6 +40,30 @@ public class AgentController {
         request.setEnableTools(true);
         AgentResponse response = agentDispatcher.dispatch(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/knowledge/search")
+    public ResponseEntity<Map<String, Object>> searchKnowledge(@RequestBody Map<String, String> body) {
+        String query = body.get("query");
+        int maxResults = body.containsKey("maxResults")
+                ? Integer.parseInt(body.get("maxResults"))
+                : 5;
+        String context = ragService.retrieveContext(query, maxResults);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "query", query,
+                "resultCount", context != null ? context.split("\n\n---\n\n").length : 0,
+                "context", context != null ? context : "未找到相关内容"
+        ));
+    }
+
+    @GetMapping("/knowledge/status")
+    public ResponseEntity<Map<String, Object>> knowledgeStatus() {
+        return ResponseEntity.ok(Map.of(
+                "available", ragService.isAvailable(),
+                "model", "all-MiniLM-L6-v2 (local)",
+                "store", "InMemory"
+        ));
     }
 
     @GetMapping("/session/{sessionId}/history")

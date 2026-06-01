@@ -56,6 +56,12 @@ export const agentApi = {
   chatWithTools(data) {
     return api.post('/agent/chat/tools', data)
   },
+  searchKnowledge(query, maxResults = 5) {
+    return api.post('/agent/knowledge/search', { query, maxResults })
+  },
+  knowledgeStatus() {
+    return api.get('/agent/knowledge/status')
+  },
   getHistory(sessionId) {
     return api.get(`/agent/session/${sessionId}/history`)
   },

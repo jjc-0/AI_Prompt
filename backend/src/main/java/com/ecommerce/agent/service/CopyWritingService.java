@@ -4,6 +4,7 @@ import com.ecommerce.agent.config.AIConfig;
 import com.ecommerce.agent.llm.MultiModelOrchestrator;
 import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.CopyWritingRequest;
+import com.ecommerce.agent.util.CountryLanguageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -38,12 +39,14 @@ public class CopyWritingService {
         }
 
         String templateId = resolveTemplateId(request.getPlatform());
-        String targetLang = resolveLanguage(request.getTargetCountry(), request.getLanguage());
+        String targetLang = request.getLanguage() != null && !request.getLanguage().isBlank()
+                ? request.getLanguage()
+                : CountryLanguageUtil.resolveLanguage(request.getTargetCountry());
 
         Map<String, String> vars = new HashMap<>();
         vars.put("productName", request.getProductName());
         vars.put("sellingPoints", request.getSellingPoints());
-        vars.put("targetCountry", resolveCountryName(request.getTargetCountry()));
+        vars.put("targetCountry", CountryLanguageUtil.resolveCountryName(request.getTargetCountry()));
         vars.put("language", targetLang);
         vars.put("style", request.getStyle() != null ? request.getStyle() : "专业且有吸引力");
 
@@ -64,37 +67,12 @@ public class CopyWritingService {
         return "copywriting-amazon";
     }
 
-    private String resolveLanguage(String country, String language) {
-        if (language != null && !language.isBlank()) return language;
-        return switch (country != null ? country.toUpperCase() : "US") {
-            case "US", "UK", "CA", "AU" -> "English";
-            case "JP" -> "Japanese";
-            case "DE" -> "German";
-            case "FR" -> "French";
-            case "KR" -> "Korean";
-            default -> "English";
-        };
-    }
-
-    private String resolveCountryName(String country) {
-        if (country == null) return "美国";
-        return switch (country.toUpperCase()) {
-            case "US" -> "美国";
-            case "UK" -> "英国";
-            case "JP" -> "日本";
-            case "DE" -> "德国";
-            case "FR" -> "法国";
-            case "KR" -> "韩国";
-            default -> country;
-        };
-    }
-
     private String buildUserMessage(CopyWritingRequest request) {
         StringBuilder sb = new StringBuilder();
         sb.append("请为以下商品生成").append(request.getPlatform() != null ? request.getPlatform() : "Amazon").append("平台的文案。\n\n");
         sb.append("商品名: ").append(request.getProductName()).append("\n");
         sb.append("卖点: ").append(request.getSellingPoints()).append("\n");
-        sb.append("目标国家: ").append(resolveCountryName(request.getTargetCountry())).append("\n");
+        sb.append("目标国家: ").append(CountryLanguageUtil.resolveCountryName(request.getTargetCountry())).append("\n");
         if (request.getExtraParams() != null && !request.getExtraParams().isEmpty()) {
             sb.append("额外信息:\n");
             request.getExtraParams().forEach((k, v) -> sb.append("- ").append(k).append(": ").append(v).append("\n"));

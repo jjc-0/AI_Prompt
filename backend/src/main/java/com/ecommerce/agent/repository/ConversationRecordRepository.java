@@ -1,7 +1,6 @@
 package com.ecommerce.agent.repository;
 
 import com.ecommerce.agent.model.ConversationRecord;
-import com.ecommerce.agent.model.ConversationSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

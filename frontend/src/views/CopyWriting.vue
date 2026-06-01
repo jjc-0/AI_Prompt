@@ -1,13 +1,13 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>✍️ 产品文案 & 询盘回复</h2>
+      <h2><el-icon :size="24"><EditPen /></el-icon> 产品文案 & 询盘回复</h2>
       <p>基于Prompt Engineering，为展示架B2B出口生成专业产品详情和询盘回复邮件</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
       <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
         <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" style="width: 100%;">🔄 刷新历史</el-button>
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px);">
           <div v-if="historyList.length === 0" style="text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
@@ -80,7 +80,7 @@
               DeepSeek AI 生成
             </el-button>
             <el-tag v-if="generating" type="warning">⏳ 生成中...</el-tag>
-            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">💾 已保存</el-tag>
+            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;"><el-icon :size="12"><Check /></el-icon> 已保存</el-tag>
           </div>
         </div>
         <div v-if="result" class="card" style="margin-top: 16px;">
@@ -105,7 +105,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Delete } from '@element-plus/icons-vue'
+import { Edit, Delete, EditPen, Refresh, Check } from '@element-plus/icons-vue'
 import { copywritingApi, agentApi } from '../api/index.js'
 
 const form = ref({

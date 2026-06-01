@@ -1,13 +1,13 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>🌐 多语言翻译</h2>
+      <h2><el-icon :size="24"><Connection /></el-icon> 多语言翻译</h2>
       <p>展示架行业专业翻译，支持多语言互译，保留营销效果</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
       <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
         <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" style="width: 100%;">🔄 刷新历史</el-button>
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px);">
           <div v-if="historyList.length === 0" style="text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
@@ -61,7 +61,7 @@
             <el-button type="primary" @click="doTranslate" :loading="translating" :icon="Reading">AI 智能翻译</el-button>
             <el-checkbox v-model="form.ecommerceLocalization" label="本地化增强" size="small" />
             <el-tag v-if="translating" type="warning">⏳ 翻译中...</el-tag>
-            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">💾 已保存</el-tag>
+            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;"><el-icon :size="12"><Check /></el-icon> 已保存</el-tag>
           </div>
         </div>
         <div v-if="result" class="card" style="margin-top: 16px;">
@@ -82,7 +82,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Reading, Edit, Delete } from '@element-plus/icons-vue'
+import { Reading, Edit, Delete, Connection, Refresh, Check } from '@element-plus/icons-vue'
 import { translateApi, agentApi } from '../api/index.js'
 
 const form = ref({

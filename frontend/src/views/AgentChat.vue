@@ -7,7 +7,7 @@
     <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
       <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
         <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadSessionList" style="width: 100%;">🔄 刷新会话列表</el-button>
+          <el-button size="small" @click="loadSessionList" :icon="Refresh" style="width: 100%;">刷新会话列表</el-button>
           <el-button size="small" @click="newSession" type="success" style="width: 100%; margin-top: 8px;">➕ 新建会话</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px);">
@@ -35,31 +35,43 @@
       <div class="card" style="flex: 1; padding: 0;">
         <div class="chat-container" style="height: calc(100vh - 220px);">
           <div class="chat-messages" style="padding: 20px;">
-            <div v-if="messages.length === 0" style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
-              <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
-              <h3 style="margin-bottom: 8px;">杰创展示 AI 助手</h3>
-              <p>我是JC Display的B2B出口AI助手</p>
-              <p style="margin-top: 12px; font-size: 13px;">试试说："帮我生成一个瓦楞纸展示架的产品详情"</p>
+            <div v-if="messages.length === 0" class="empty-state">
+              <div class="empty-icon">
+                <div class="empty-avatar">
+                  <el-icon :size="40"><Cpu /></el-icon>
+                </div>
+              </div>
+              <h3>杰创展示 AI 助手</h3>
+              <p>我是JC Display的B2B出口AI助手，很高兴为您服务</p>
+              <div class="empty-hints">
+                <span class="hint-chip">"帮我生成一个瓦楞纸展示架的产品详情"</span>
+                <span class="hint-chip">"分析美国市场展示架的出口机会"</span>
+                <span class="hint-chip">"将产品描述翻译成日语"</span>
+              </div>
             </div>
 
-            <div v-for="(msg, index) in messages" :key="index" :class="['chat-message', msg.role]">
+            <div v-for="(msg, index) in messages" :key="index"
+              :class="['chat-message', msg.role, 'animate__animated', 'animate__fadeInUp']">
               <div :class="['chat-avatar', msg.role]">
-                {{ msg.role === 'user' ? '👤' : '🤖' }}
+                <el-icon :size="18" v-if="msg.role === 'user'"><UserFilled /></el-icon>
+                <el-icon :size="18" v-else><Cpu /></el-icon>
               </div>
               <div>
                 <div :class="['chat-bubble', msg.role]" v-html="renderMarkdown(msg.content)"></div>
                 <div v-if="msg.toolCalls && msg.toolCalls.length > 0">
-                  <div v-for="(tc, tIdx) in msg.toolCalls" :key="tIdx" class="tool-call-log">
-                    <span class="tool-name">🛠 {{ tc.toolName }}</span>
-                    <span style="margin-left: 8px; color: #909399;">{{ tc.durationMs }}ms</span>
-                    <div style="margin-top: 4px; white-space: pre-wrap; font-size: 11px; max-height: 80px; overflow-y: auto;">{{ tc.output }}</div>
+                  <div v-for="(tc, tIdx) in msg.toolCalls" :key="tIdx" class="tool-call-log animate__animated animate__fadeInUp">
+                    <span class="tool-name"><el-icon :size="14"><Tools /></el-icon> {{ tc.toolName }}</span>
+                    <span class="tool-time">{{ tc.durationMs }}ms</span>
+                    <div class="tool-output">{{ tc.output }}</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-if="loading" class="chat-message assistant">
-              <div class="chat-avatar assistant">🤖</div>
+            <div v-if="loading" class="chat-message assistant animate__animated animate__fadeInUp">
+              <div class="chat-avatar assistant">
+                <el-icon :size="18"><Cpu /></el-icon>
+              </div>
               <div class="typing-indicator">
                 <span></span><span></span><span></span>
               </div>
@@ -107,7 +119,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Promotion, Edit, Delete } from '@element-plus/icons-vue'
+import { Promotion, Edit, Delete, Cpu, UserFilled, Tools, Refresh } from '@element-plus/icons-vue'
 import { agentApi } from '../api/index.js'
 
 const messages = ref([])
@@ -267,6 +279,84 @@ async function clearSession() {
 </script>
 
 <style scoped>
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-bg), rgba(129, 140, 248, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--primary);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15); }
+  50% { box-shadow: 0 4px 30px rgba(99, 102, 241, 0.3); }
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.empty-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.hint-chip {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hint-chip:hover {
+  border-color: var(--primary-light);
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.tool-time {
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.tool-output {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  font-size: 11px;
+  max-height: 80px;
+  overflow-y: auto;
+  color: var(--text-secondary);
+}
+
 .session-item {
   padding: 10px 12px;
   border-radius: 6px;

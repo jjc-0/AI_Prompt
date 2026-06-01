@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -180,12 +179,16 @@ public class AgentDispatcher {
         int maxRounds = aiConfig.getAgent().getMaxConversationRounds();
         String finalResponse = null;
 
-        String currentMessage = effectiveMsg;
-
         for (int round = 0; round < maxRounds; round++) {
-            String llmResponse = provider.chatCompletionWithTools(systemPrompt, currentMessage, toolDefs).join();
-            String toolCallJson = extractToolCallJson(llmResponse);
+            String llmResponse;
+            if (round == 0) {
+                llmResponse = provider.chatCompletionWithTools(systemPrompt, effectiveMsg, toolDefs).join();
+            } else {
+                List<Map<String, String>> history = conversationManager.getHistoryForLLM(sessionId);
+                llmResponse = provider.chatCompletionWithHistory(systemPrompt, history).join();
+            }
 
+            String toolCallJson = extractToolCallJson(llmResponse);
             if (toolCallJson == null) {
                 finalResponse = llmResponse;
                 break;
@@ -215,10 +218,8 @@ public class AgentDispatcher {
                         .build());
 
                 conversationManager.addToolMessage(sessionId, "assistant", llmResponse, toolName, toolResult);
-
-                String toolMsg = "工具 " + toolName + " 执行结果:\n" + toolResult
-                        + "\n\n请基于以上工具返回的信息继续回答用户的问题。";
-                currentMessage = toolMsg;
+                log.info("工具 {} 执行完成 (round={}): {}", toolName, round,
+                        toolResult.length() > 200 ? toolResult.substring(0, 200) + "..." : toolResult);
 
             } catch (Exception e) {
                 log.error("工具调用失败 (round {})", round, e);
@@ -229,13 +230,13 @@ public class AgentDispatcher {
                         .status("failed")
                         .durationMs(0)
                         .build());
-                finalResponse = "工具调用过程中出现错误: " + e.getMessage();
+                finalResponse = "工具调用出错: " + e.getMessage();
                 break;
             }
         }
 
         if (finalResponse == null) {
-            finalResponse = "已达到最大工具调用轮次 (" + maxRounds + ")，请尝试简化您的问题。";
+            finalResponse = "已达到最大工具调用轮次 (" + maxRounds + ")，请尝试简化问题。";
         }
 
         String cleanResponse = stripToolCallJson(finalResponse);
@@ -276,7 +277,8 @@ public class AgentDispatcher {
         if (text == null) return null;
         int braceIdx = text.indexOf("{\"name\"");
         if (braceIdx > 0) {
-            return text.substring(0, braceIdx).trim();
+            String before = text.substring(0, braceIdx).trim();
+            return before.isEmpty() ? text : before;
         }
         return text;
     }

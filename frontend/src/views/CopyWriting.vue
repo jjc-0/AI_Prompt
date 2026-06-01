@@ -1,16 +1,16 @@
 <template>
   <div>
     <div class="page-header">
-      <h2><el-icon :size="24"><EditPen /></el-icon> 产品文案 & 询盘回复</h2>
-      <p>基于Prompt Engineering，为展示架B2B出口生成专业产品详情和询盘回复邮件</p>
+      <h2><el-icon :size="20"><EditPen /></el-icon> 产品文案 & 询盘回复</h2>
+      <p>基于 Prompt Engineering，为展示架 B2B 出口生成专业产品详情和询盘回复邮件</p>
     </div>
-    <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
-      <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+    <div class="page-content" style="display: flex; gap: 16px;">
+      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
         <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新</el-button>
         </div>
-        <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px);">
-          <div v-if="historyList.length === 0" style="text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
+        <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 280px);">
+          <div v-if="historyList.length === 0" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px;">
             暂无文案生成历史
           </div>
           <div v-for="h in historyList" :key="h.sessionId"
@@ -23,7 +23,7 @@
                 <el-button size="small" text @click.stop="confirmDelete(h)" title="删除"><el-icon><Delete /></el-icon></el-button>
               </div>
             </div>
-            <div style="font-size: 11px; opacity: 0.5; margin-top: 4px;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
               {{ h.messageCount }} 条 · {{ h.updatedAt?.substring(0, 16) }}
             </div>
           </div>
@@ -32,31 +32,31 @@
 
       <div style="flex: 1;">
         <div class="card">
-          <div class="card-title">📝 产品信息</div>
+          <div class="card-title">产品信息</div>
           <div class="form-row">
             <el-form-item label="产品名称" style="flex: 2;">
               <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" />
             </el-form-item>
             <el-form-item label="文案类型" style="flex: 1;">
               <el-select v-model="form.platform" placeholder="选择类型">
-                <el-option label="B2B产品详情" value="alibaba" />
+                <el-option label="B2B 产品详情" value="alibaba" />
                 <el-option label="询盘回复邮件" value="email" />
               </el-select>
             </el-form-item>
             <el-form-item label="目标市场" style="flex: 1;">
               <el-select v-model="form.targetCountry" placeholder="选择国家">
-                <el-option label="美国 (US)" value="US" />
-                <el-option label="日本 (JP)" value="JP" />
-                <el-option label="英国 (UK)" value="UK" />
-                <el-option label="德国 (DE)" value="DE" />
-                <el-option label="澳大利亚 (AU)" value="AU" />
+                <el-option label="美国" value="US" />
+                <el-option label="日本" value="JP" />
+                <el-option label="英国" value="UK" />
+                <el-option label="德国" value="DE" />
+                <el-option label="澳大利亚" value="AU" />
               </el-select>
             </el-form-item>
           </div>
           <div class="form-row">
             <el-form-item label="产品特点 / 客户需求" style="flex: 3;">
               <el-input v-model="form.sellingPoints" type="textarea" :rows="3"
-                placeholder="例如：3层瓦楞纸陈列架、4C印刷、可定制尺寸、适合超市饮料区、客户需求300pcs" />
+                placeholder="例如：3层瓦楞纸陈列架、4C印刷、可定制尺寸、适合超市饮料区" />
             </el-form-item>
           </div>
           <div class="form-row">
@@ -77,16 +77,18 @@
           </div>
           <div style="display: flex; gap: 12px; align-items: center;">
             <el-button type="primary" @click="generateCopy" :loading="generating" :icon="Edit">
-              DeepSeek AI 生成
+              生成文案
             </el-button>
-            <el-tag v-if="generating" type="warning">⏳ 生成中...</el-tag>
-            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;"><el-icon :size="12"><Check /></el-icon> 已保存</el-tag>
+            <el-tag v-if="generating" type="warning">生成中...</el-tag>
+            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">
+              <el-icon :size="12"><Check /></el-icon> 已保存
+            </el-tag>
           </div>
         </div>
         <div v-if="result" class="card" style="margin-top: 16px;">
           <div class="card-title">生成结果</div>
           <div class="result-box" v-html="renderedResult"></div>
-          <div style="margin-top: 16px; display: flex; gap: 8px;">
+          <div style="margin-top: 14px; display: flex; gap: 8px;">
             <el-button size="small" @click="copyResult">复制结果</el-button>
             <el-button size="small" @click="generateCopy" :loading="generating">重新生成</el-button>
           </div>
@@ -94,7 +96,6 @@
       </div>
     </div>
 
-    <!-- Rename Dialog -->
     <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">
       <el-input v-model="renameValue" placeholder="输入新名称" @keyup.enter="doRename" maxlength="60" show-word-limit />
       <template #footer><el-button @click="renameVisible = false">取消</el-button><el-button type="primary" @click="doRename">确定</el-button></template>
@@ -181,13 +182,3 @@ async function confirmDelete(s) {
   } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
 }
 </script>
-
-<style scoped>
-.session-item { padding: 10px 12px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; transition: all 0.2s; }
-.session-item:hover { background: #f0f5ff; }
-.session-item.active { background: #e6f7ff; border-left: 3px solid var(--primary); }
-.session-top { display: flex; align-items: center; justify-content: space-between; }
-.session-title { font-size: 13px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session-actions { display: none; gap: 2px; }
-.session-item:hover .session-actions { display: flex; }
-</style>

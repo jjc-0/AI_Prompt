@@ -1,16 +1,16 @@
 <template>
   <div>
     <div class="page-header">
-      <h2><el-icon :size="24"><TrendCharts /></el-icon> 展示架市场分析</h2>
-      <p>使用 DeepSeek 深度推理，分析展示架/POP产品在不同市场的出口机会</p>
+      <h2><el-icon :size="20"><TrendCharts /></el-icon> 展示架市场分析</h2>
+      <p>分析展示架/POP 产品在不同国家市场的出口机会与竞争态势</p>
     </div>
-    <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
-      <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+    <div class="page-content" style="display: flex; gap: 16px;">
+      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
         <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新</el-button>
         </div>
-        <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 320px);">
-          <div v-if="historyList.length === 0" style="text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
+        <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 280px);">
+          <div v-if="historyList.length === 0" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px;">
             暂无市场分析历史
           </div>
           <div v-for="h in historyList" :key="h.sessionId"
@@ -23,7 +23,7 @@
                 <el-button size="small" text @click.stop="confirmDelete(h)" title="删除"><el-icon><Delete /></el-icon></el-button>
               </div>
             </div>
-            <div style="font-size: 11px; opacity: 0.5; margin-top: 4px;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
               {{ h.messageCount }} 条 · {{ h.updatedAt?.substring(0, 16) }}
             </div>
           </div>
@@ -32,7 +32,7 @@
 
       <div style="flex: 1;">
         <div class="card">
-          <div class="card-title">🔍 分析参数</div>
+          <div class="card-title">分析参数</div>
           <div class="form-row">
             <el-form-item label="商品名称" style="flex: 1;">
               <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" />
@@ -48,11 +48,13 @@
             </el-form-item>
           </div>
           <div style="display: flex; gap: 12px; align-items: center;">
-            <el-button type="primary" @click="doAnalysis" :loading="analyzing" :icon="Opportunity">
-              DeepSeek 深度分析
+            <el-button type="primary" @click="doAnalysis" :loading="analyzing" :icon="TrendCharts">
+              深度分析
             </el-button>
-            <el-tag v-if="analyzing" type="warning">⏳ 分析中...</el-tag>
-            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;"><el-icon :size="12"><Check /></el-icon> 已保存</el-tag>
+            <el-tag v-if="analyzing" type="warning">分析中...</el-tag>
+            <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">
+              <el-icon :size="12"><Check /></el-icon> 已保存
+            </el-tag>
           </div>
         </div>
         <div v-if="result" class="card" style="margin-top: 16px;">
@@ -62,7 +64,6 @@
       </div>
     </div>
 
-    <!-- Rename Dialog -->
     <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">
       <el-input v-model="renameValue" placeholder="输入新名称" @keyup.enter="doRename" maxlength="60" show-word-limit />
       <template #footer><el-button @click="renameVisible = false">取消</el-button><el-button type="primary" @click="doRename">确定</el-button></template>
@@ -73,7 +74,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Opportunity, Edit, Delete, TrendCharts, Refresh, Check } from '@element-plus/icons-vue'
+import { Edit, Delete, TrendCharts, Refresh, Check } from '@element-plus/icons-vue'
 import { analysisApi, agentApi } from '../api/index.js'
 
 const form = ref({ productName: '', targetCountry: 'US' })
@@ -137,13 +138,3 @@ async function confirmDelete(s) {
   } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
 }
 </script>
-
-<style scoped>
-.session-item { padding: 10px 12px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; transition: all 0.2s; }
-.session-item:hover { background: #f0f5ff; }
-.session-item.active { background: #e6f7ff; border-left: 3px solid var(--primary); }
-.session-top { display: flex; align-items: center; justify-content: space-between; }
-.session-title { font-size: 13px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session-actions { display: none; gap: 2px; }
-.session-item:hover .session-actions { display: flex; }
-</style>

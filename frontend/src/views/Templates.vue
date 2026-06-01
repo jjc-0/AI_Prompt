@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>📋 Prompt 模板管理</h2>
+      <h2><el-icon :size="20"><Document /></el-icon> Prompt 模板管理</h2>
       <p>可视化管理系统内置的Prompt模板，支持预览、变量渲染、分类查看</p>
     </div>
     <div class="page-content">
@@ -87,6 +87,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Document } from '@element-plus/icons-vue'
 import { copywritingApi } from '../api/index.js'
 
 const templates = ref([])

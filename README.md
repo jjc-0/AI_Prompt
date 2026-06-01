@@ -1,0 +1,230 @@
+# JC Display AI Agent — 跨境电商智能运营助手
+
+基于 LLM Agent + RAG 的展示架（POP Display）B2B 出口 AI 助手，面向深圳杰创展示公司的跨境业务场景，提供智能对话、文案生成、多语言翻译和市场分析能力。
+
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)](https://spring.io/projects/spring-boot)
+[![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D)](https://vuejs.org/)
+[![LangChain4j](https://img.shields.io/badge/LangChain4j-0.36.2-blue)](https://docs.langchain4j.dev/)
+[![JDK](https://img.shields.io/badge/JDK-17-orange)](https://openjdk.org/)
+
+---
+
+## 功能特性
+
+| 功能 | 说明 |
+|---|---|
+| **🤖 AI Agent 对话** | 多轮对话 + 工具调用（搜索、网页抓取、翻译、汇率、SEO），支持 DeepSeek / OpenAI 双引擎 |
+| **✍️ 产品文案 & 询盘回复** | 基于 Prompt Engineering 生成展示架 B2B 产品详情和英文询盘回复邮件 |
+| **🌐 多语言翻译** | 展示架行业专业翻译，支持多语言互译与跨境电商本地化增强 |
+| **📊 市场分析** | 分析展示架/POP 产品在不同国家市场的出口机会，结合 RAG 知识库 |
+| **📋 Prompt 模板** | 可配置的 Prompt 模板管理与版本控制 |
+| **📚 RAG 知识库** | 10 篇业务知识文档向量化检索，增强 LLM 回答的专业性 |
+| **💬 会话管理** | 对话持久化存储、自动 AI 命名、历史回溯 |
+| **🎨 现代 UI** | Vue 3 + Element Plus，靛蓝紫配色，animate.css 动效 |
+
+---
+
+## 技术栈
+
+### 后端
+- **框架**: Spring Boot 3.2.5
+- **持久层**: Spring Data JPA + MySQL / H2
+- **LLM 集成**: LangChain4j 0.36.2（OpenAI + DeepSeek 适配）
+- **RAG**: AllMiniLmL6V2EmbeddingModel（ONNX 本地嵌入 384 维）+ InMemoryEmbeddingStore
+- **工具调用**: Google 搜索、网页抓取（Jsoup）、汇率转换、SEO 分析
+- **HTTP 客户端**: OkHttp 4.12
+
+### 前端
+- **框架**: Vue 3.4 + Composition API
+- **UI 库**: Element Plus 2.7 + Element Plus Icons
+- **状态管理**: Pinia
+- **路由**: Vue Router 4（懒加载 + 过渡动画）
+- **动画**: animate.css 4.1
+- **构建**: Vite 5
+
+```
+项目根目录
+├── backend/                          # Spring Boot 后端
+│   ├── src/main/java/com/ecommerce/agent/
+│   │   ├── agent/                    # Agent 调度与会话管理
+│   │   │   ├── AgentDispatcher.java  # 核心分发器（LLM + 工具调用 + 自动命名）
+│   │   │   └── ConversationManager.java  # 会话 CRUD（内存 + MySQL 双写）
+│   │   ├── config/                   # 全局配置与异常处理
+│   │   ├── controller/               # REST API 控制器
+│   │   ├── llm/                      # LLM 提供者适配
+│   │   │   ├── MultiModelOrchestrator.java  # 多模型编排（reasoning / completion）
+│   │   │   ├── DeepSeekProvider.java        # DeepSeek API 适配
+│   │   │   └── PromptTemplateManager.java   # Prompt 模板管理
+│   │   ├── model/                    # 数据模型（DTO + JPA Entity）
+│   │   ├── rag/                      # RAG 检索增强
+│   │   │   ├── RAGConfig.java        # 嵌入模型与向量存储 Bean 配置
+│   │   │   ├── RAGService.java       # 检索 + 增强 Prompt 构建
+│   │   │   ├── KnowledgeBaseLoader.java  # 文档切分、向量化、入库
+│   │   │   └── KnowledgeDocuments.java   # 10 篇展示架行业知识文档
+│   │   ├── repository/               # Spring Data JPA Repository
+│   │   ├── service/                  # 业务服务层
+│   │   │   └── SessionTitleService.java  # LLM 异步自动命名
+│   │   ├── tool/                     # 可调用工具集
+│   │   └── util/                     # 工具类（国家语言解析）
+│   └── src/main/resources/
+│       └── application.yml           # 主配置（LLM、RAG、工具、数据库）
+│
+├── frontend/                         # Vue 3 前端
+│   └── src/
+│       ├── api/index.js              # Axios API 封装
+│       ├── router/index.js           # 路由定义
+│       ├── views/                    # 页面视图
+│       │   ├── AgentChat.vue         # AI Agent 对话页
+│       │   ├── CopyWriting.vue       # 产品文案页
+│       │   ├── Translate.vue         # 多语言翻译页
+│       │   ├── Analysis.vue          # 市场分析页
+│       │   └── Templates.vue         # Prompt 模板页
+│       ├── assets/styles/main.css    # 全局样式（CSS 变量、布局、动画）
+│       ├── App.vue                   # 根组件（侧边栏 + 过渡动画）
+│       └── main.js                   # 入口（Element Plus + animate.css）
+└── README.md
+```
+
+---
+
+## 快速启动
+
+### 环境要求
+
+- **JDK 17+**
+- **MySQL 8.0+**（或使用内置 H2 自动降级）
+- **Node.js 18+**
+- **Maven 3.8+**
+
+### 1. 配置 LLM API Key
+
+在项目根目录创建 `backend/src/main/resources/application-secrets.yml`：
+
+```yaml
+DEEPSEEK_API_KEY: sk-your-deepseek-key
+```
+
+> 该文件已被 `.gitignore` 排除，不会提交到仓库。
+
+### 2. 启动后端
+
+```bash
+cd backend
+
+# 使用 H2 内存数据库（无需 MySQL）
+mvn spring-boot:run
+
+# 或指定 MySQL 连接
+mvn spring-boot:run -Dspring-boot.run.arguments="--MYSQL_URL=jdbc:mysql://localhost:3306/jc_agent --MYSQL_USER=root --MYSQL_PASS=yourpassword"
+```
+
+后端默认运行在 `http://localhost:8088`。
+
+### 3. 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+前端默认运行在 `http://localhost:3000`，开发代理自动转发 `/api` 请求到后端。
+
+---
+
+## API 接口
+
+### AI Agent
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/agent/chat` | 发送对话消息 |
+| `POST` | `/api/agent/chat/tools` | 带工具调用的对话 |
+| `GET` | `/api/agent/sessions` | 获取会话列表 |
+| `GET` | `/api/agent/sessions?operation=copywriting` | 按类型过滤会话 |
+| `GET` | `/api/agent/session/{id}/history` | 获取会话历史 |
+| `DELETE` | `/api/agent/session/{id}` | 删除会话 |
+| `POST` | `/api/agent/knowledge/search` | 搜索知识库 |
+| `GET` | `/api/agent/knowledge/status` | 知识库状态 |
+
+### 产品文案
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/copywriting/generate` | 生成产品文案/询盘回复 |
+
+### 多语言翻译
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/translate/text` | 文本翻译（支持本地化增强） |
+
+### 市场分析
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/analysis/market` | 市场出口机会分析 |
+
+---
+
+## 核心设计
+
+### LLM Agent 工具调用流程
+
+```
+用户输入 → AgentDispatcher
+    ├─ 会话管理（新建/恢复 + 异步 AI 自动命名）
+    ├─ MultiModelOrchestrator（DeepSeek / OpenAI 双引擎）
+    ├─ RAGService（检索相关业务知识增强 Prompt）
+    └─ ToolRegistry（Google 搜索 / 网页抓取 / 翻译 / 汇率 / SEO）
+         → 解析 LLM 返回的 tool_call → 执行工具 → 注入结果 → 最终回复
+```
+
+### RAG 知识库
+
+- **嵌入模型**: `AllMiniLmL6V2EmbeddingModel`（384 维向量，本地 ONNX 推理）
+- **文档**: 10 篇展示架行业知识（公司信息、产品规格、市场分析、合规认证、物流运输、行业展会、术语、B2B 优化、询盘邮件、本地化指南）
+- **切分策略**: `DocumentSplitter.recursive(500, 50)`
+- **检索**: 基于余弦相似度，默认 Top 5，最低阈值 0.6
+
+### 会话自动命名
+
+首次对话时，先用用户消息前 30 字符作为即时标题，同时异步调用 LLM 提炼 10 字以内的精准标题，2-3 秒后自动更新侧边栏。
+
+---
+
+## 配置项
+
+核心配置参见 `application.yml`：
+
+| 配置节 | 说明 |
+|---|---|
+| `ai.providers.deepseek` | DeepSeek API 配置 |
+| `ai.providers.openai` | OpenAI API 配置 |
+| `ai.agent.max-conversation-rounds` | 最大对话轮次（默认 10） |
+| `ai.rag.max-results` | RAG 检索最大结果数（默认 5） |
+| `ai.rag.min-score` | 相似度最低阈值（默认 0.6） |
+| `tools.search.*` | Google 搜索工具配置 |
+| `tools.scraper.*` | 网页抓取工具配置 |
+| `tools.currency.*` | 汇率工具配置 |
+
+---
+
+## 数据库
+
+支持 MySQL 和 H2 自动切换：
+
+- **MySQL 可用时**: 使用 `jc_agent` 数据库，JPA `ddl-auto: update` 自动建表
+- **MySQL 不可用时**: 自动降级到 H2 内存数据库，`/h2-console` 可查看
+
+| 表名 | 说明 |
+|---|---|
+| `conversation_session` | 会话元数据（标题、类型、消息数） |
+| `conversation_record` | 对话消息记录 |
+| `prompt_template` | Prompt 模板 |
+
+---
+
+## License
+
+深圳市杰创展示公司版权所有 · For JC Display internal use.

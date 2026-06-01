@@ -87,9 +87,9 @@ public class OpenAIProvider implements LLMProvider {
                     requestBody.set("tools", toolsArray);
                     requestBody.put("tool_choice", "auto");
                 }
-                return executeRequest(requestBody);
+                return executeToolRequest(requestBody);
             } catch (Exception e) {
-                log.error("OpenAI chat completion with tools error", e);
+                log.error("OpenAI tool call error", e);
                 throw new RuntimeException("OpenAI工具调用失败: " + e.getMessage(), e);
             }
         });
@@ -112,11 +112,44 @@ public class OpenAIProvider implements LLMProvider {
     private void addMessage(ArrayNode messages, String role, String content) {
         ObjectNode msg = objectMapper.createObjectNode();
         msg.put("role", role);
-        msg.put("content", content);
+        msg.put("content", content != null ? content : "");
         messages.add(msg);
     }
 
     private String executeRequest(ObjectNode requestBody) throws IOException {
+        JsonNode messageNode = callApi(requestBody);
+        return messageNode.path("content").asText("");
+    }
+
+    private String executeToolRequest(ObjectNode requestBody) throws IOException {
+        JsonNode messageNode = callApi(requestBody);
+
+        JsonNode toolCalls = messageNode.path("tool_calls");
+        if (toolCalls.isArray() && toolCalls.size() > 0) {
+            JsonNode firstToolCall = toolCalls.get(0);
+            JsonNode function = firstToolCall.path("function");
+            String name = function.path("name").asText();
+            String arguments = function.path("arguments").asText();
+
+            ObjectNode toolCallResult = objectMapper.createObjectNode();
+            toolCallResult.put("name", name);
+            try {
+                toolCallResult.set("arguments", objectMapper.readTree(arguments));
+            } catch (Exception e) {
+                toolCallResult.put("arguments", arguments);
+            }
+
+            String content = messageNode.path("content").asText(null);
+            if (content != null && !content.isBlank()) {
+                return content + "\n" + toolCallResult.toString();
+            }
+            return toolCallResult.toString();
+        }
+
+        return messageNode.path("content").asText("");
+    }
+
+    private JsonNode callApi(ObjectNode requestBody) throws IOException {
         AIConfig.OpenAIConfig openai = aiConfig.getProviders().getOpenai();
         String url = openai.getBaseUrl() + "/chat/completions";
         Request request = new Request.Builder()
@@ -132,7 +165,7 @@ public class OpenAIProvider implements LLMProvider {
                 throw new RuntimeException("OpenAI API返回错误: " + response.code() + " " + errorBody);
             }
             JsonNode root = objectMapper.readTree(response.body().string());
-            return root.path("choices").get(0).path("message").path("content").asText();
+            return root.path("choices").get(0).path("message");
         }
     }
 }

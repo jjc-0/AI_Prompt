@@ -42,9 +42,9 @@
               <h3>杰创展示 AI 助手</h3>
               <p>JC Display B2B 出口 AI 助手，很高兴为您服务</p>
               <div class="empty-hints">
-                <span class="hint-chip">"帮我生成一个瓦楞纸展示架的产品详情"</span>
-                <span class="hint-chip">"分析美国市场展示架的出口机会"</span>
-                <span class="hint-chip">"将产品描述翻译成日语"</span>
+                <span class="hint-chip" @click="hintSend('帮我生成一个瓦楞纸展示架的产品详情')">"帮我生成一个瓦楞纸展示架的产品详情"</span>
+                <span class="hint-chip" @click="hintSend('分析美国市场展示架的出口机会')">"分析美国市场展示架的出口机会"</span>
+                <span class="hint-chip" @click="hintSend('将产品描述翻译成日语')">"将产品描述翻译成日语"</span>
               </div>
             </div>
 
@@ -272,6 +272,11 @@ async function clearSession() {
   } catch (e) {
     ElMessage.error('清除失败')
   }
+}
+
+function hintSend(text) {
+  inputText.value = text
+  sendMessage()
 }
 </script>
 

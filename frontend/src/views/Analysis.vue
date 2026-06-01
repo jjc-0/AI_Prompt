@@ -117,6 +117,7 @@ async function doAnalysis() {
     currentSessionId.value = res.data.sessionId
     ElMessage.success('分析完成')
     loadHistory()
+    setTimeout(() => loadHistory(), 2500)
   } catch (e) { ElMessage.error('分析失败') }
   finally { analyzing.value = false }
 }

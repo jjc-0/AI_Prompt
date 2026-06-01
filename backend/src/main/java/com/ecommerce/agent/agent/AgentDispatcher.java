@@ -8,6 +8,7 @@ import com.ecommerce.agent.model.AgentRequest;
 import com.ecommerce.agent.model.AgentResponse;
 import com.ecommerce.agent.model.ConversationMessage;
 import com.ecommerce.agent.rag.RAGService;
+import com.ecommerce.agent.service.SessionTitleService;
 import com.ecommerce.agent.tool.Tool;
 import com.ecommerce.agent.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +31,7 @@ public class AgentDispatcher {
     private final ToolRegistry toolRegistry;
     private final AIConfig aiConfig;
     private final RAGService ragService;
+    private final SessionTitleService titleService;
     private final ObjectMapper objectMapper;
 
     public AgentDispatcher(MultiModelOrchestrator orchestrator,
@@ -37,21 +39,28 @@ public class AgentDispatcher {
                            ConversationManager conversationManager,
                            ToolRegistry toolRegistry,
                            AIConfig aiConfig,
-                           RAGService ragService) {
+                           RAGService ragService,
+                           SessionTitleService titleService) {
         this.orchestrator = orchestrator;
         this.promptManager = promptManager;
         this.conversationManager = conversationManager;
         this.toolRegistry = toolRegistry;
         this.aiConfig = aiConfig;
         this.ragService = ragService;
+        this.titleService = titleService;
         this.objectMapper = new ObjectMapper();
     }
 
     public AgentResponse dispatch(AgentRequest request) {
         long startTime = System.currentTimeMillis();
         String sessionId = ensureSession(request.getSessionId());
+        boolean isNewSession = request.getSessionId() == null || !conversationManager.sessionExists(request.getSessionId());
 
         conversationManager.addMessage(sessionId, "user", request.getMessage());
+
+        if (isNewSession) {
+            titleService.autoTitle(sessionId, request.getMessage());
+        }
 
         if (!aiConfig.isDeepSeekKeyConfigured()) {
             String demoMsg = buildDemoResponse(request);

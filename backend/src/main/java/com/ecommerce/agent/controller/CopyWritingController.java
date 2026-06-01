@@ -5,6 +5,7 @@ import com.ecommerce.agent.model.CopyWritingRequest;
 import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.PromptTemplate;
 import com.ecommerce.agent.service.CopyWritingService;
+import com.ecommerce.agent.service.SessionTitleService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,26 +20,29 @@ public class CopyWritingController {
     private final CopyWritingService copyWritingService;
     private final PromptTemplateManager promptManager;
     private final ConversationManager conversationManager;
+    private final SessionTitleService titleService;
 
     public CopyWritingController(CopyWritingService copyWritingService,
                                   PromptTemplateManager promptManager,
-                                  ConversationManager conversationManager) {
+                                  ConversationManager conversationManager,
+                                  SessionTitleService titleService) {
         this.copyWritingService = copyWritingService;
         this.promptManager = promptManager;
         this.conversationManager = conversationManager;
+        this.titleService = titleService;
     }
 
     @PostMapping("/generate")
     public ResponseEntity<Map<String, Object>> generate(@Valid @RequestBody CopyWritingRequest request) {
         long start = System.currentTimeMillis();
 
-        String sessionId = conversationManager.createSession(
-                "B2B: " + request.getProductName(), "copywriting");
+        String sessionId = conversationManager.createSession(null, "copywriting");
         String userMsg = "产品: " + request.getProductName()
                 + "\n特点: " + request.getSellingPoints()
                 + "\n市场: " + request.getTargetCountry()
                 + "\n平台: " + request.getPlatform();
         conversationManager.addMessage(sessionId, "user", userMsg);
+        titleService.autoTitle(sessionId, userMsg);
 
         String result = copyWritingService.generateCopy(request).join();
         long elapsed = System.currentTimeMillis() - start;

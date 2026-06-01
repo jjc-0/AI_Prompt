@@ -7,6 +7,7 @@ import com.ecommerce.agent.repository.ConversationRecordRepository;
 import com.ecommerce.agent.repository.ConversationSessionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -187,6 +188,7 @@ public class ConversationManager {
         return result;
     }
 
+    @Transactional
     public void clearSession(String sessionId) {
         sessions.remove(sessionId);
         if (isDbAvailable()) {
@@ -222,6 +224,7 @@ public class ConversationManager {
         return sb.toString();
     }
 
+    @Transactional
     public void updateSessionTitle(String sessionId, String title) {
         if (isDbAvailable()) {
             try {

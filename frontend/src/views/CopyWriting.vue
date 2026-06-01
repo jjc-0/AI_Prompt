@@ -159,6 +159,7 @@ async function generateCopy() {
     currentSessionId.value = res.data.sessionId
     ElMessage.success(`生成完成 (${res.data.processingTimeMs}ms)`)
     loadHistory()
+    setTimeout(() => loadHistory(), 2500)
   } catch (e) { ElMessage.error('生成失败') }
   finally { generating.value = false }
 }

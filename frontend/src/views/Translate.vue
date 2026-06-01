@@ -132,6 +132,7 @@ async function doTranslate() {
     currentSessionId.value = res.data.sessionId
     ElMessage.success('翻译完成')
     loadHistory()
+    setTimeout(() => loadHistory(), 2500)
   } catch (e) { ElMessage.error('翻译失败') }
   finally { translating.value = false }
 }

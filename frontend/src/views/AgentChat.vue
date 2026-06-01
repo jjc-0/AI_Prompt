@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <h2>🤖 AI Agent 对话</h2>
-      <p>具备工具调用能力的智能Agent，所有对话自动保存到MySQL数据库</p>
+      <p>具备工具调用能力的智能Agent</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px; padding: 16px;">
       <div style="width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
@@ -40,7 +40,6 @@
               <h3 style="margin-bottom: 8px;">杰创展示 AI 助手</h3>
               <p>我是JC Display的B2B出口AI助手</p>
               <p style="margin-top: 12px; font-size: 13px;">试试说："帮我生成一个瓦楞纸展示架的产品详情"</p>
-              <p style="margin-top: 4px; font-size: 11px; opacity: 0.5;">💾 所有对话自动保存到 MySQL</p>
             </div>
 
             <div v-for="(msg, index) in messages" :key="index" :class="['chat-message', msg.role]">
@@ -244,6 +243,7 @@ async function sendMessage() {
       modelUsed: res.data.modelUsed
     })
     loadSessionList()
+    setTimeout(() => loadSessionList(), 2500)
   } catch (e) {
     messages.value.push({ role: 'assistant', content: '抱歉，请求失败：' + (e.message || '未知错误') })
   } finally {

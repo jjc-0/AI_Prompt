@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><EditPen /></el-icon>文案 & 询盘回复</h2>
@@ -10,7 +10,7 @@
           <el-button size="small" @click="loadHistory" :icon="Refresh" style="width:100%;">刷新历史</el-button>
         </div>
         <div class="card card-fill card-pad0" style="padding:6px;">
-          <div class="sess-list">
+          <div class="sess-list stagger-in">
             <div v-if="historyList.length===0" style="text-align:center;padding:36px 16px;color:var(--text-muted);font-size:13px;">
               <el-icon :size="26" style="margin-bottom:8px;"><Document /></el-icon><div>暂无历史</div>
             </div>
@@ -48,7 +48,7 @@
             <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left:auto;"><el-icon :size="12"><Check /></el-icon>已保存</el-tag>
           </div>
         </div>
-        <div v-if="result" class="card slide-up">
+        <div v-if="result" class="card result-box-animated">
           <div class="card-head">生成结果</div>
           <div class="result-box" v-html="rendered"></div>
           <div style="margin-top:14px;display:flex;gap:10px;">

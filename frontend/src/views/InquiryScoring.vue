@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><DataAnalysis /></el-icon>询盘价值评分</h2>
@@ -28,7 +28,7 @@
           </div>
         </div>
 
-        <div v-if="result" class="card slide-up">
+        <div v-if="result" class="card result-box-animated">
           <div class="card-head">分析结果</div>
           <div style="text-align:center;margin-bottom:20px;">
             <div :class="['score-ring']" :style="{background:'conic-gradient('+ringColor+' 0deg,'+ringColor+' calc('+result.score+'*3.6deg),'+ringBg+' calc('+result.score+'*3.6deg),'+ringBg+' 360deg)'}">
@@ -56,7 +56,7 @@
 
       <div class="split-side">
         <div class="card">
-          <div class="card-head">评分维度</div>
+          <div class="card-head stagger-in">评分维度</div>
           <div v-for="d in dims" :key="d.name" style="margin-bottom:12px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12.5px;font-weight:500;">{{d.name}}</span><span style="font-size:11px;color:var(--text-muted);">{{d.w}}%</span></div>
             <el-progress :percentage="d.w" :color="d.c" :stroke-width="5" :show-text="false"/>

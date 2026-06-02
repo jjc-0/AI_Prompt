@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><Document /></el-icon>Prompt 模板管理</h2>
       <p>可视化管理系统内置 Prompt 模板 · 版本对比 · 变量预览 · 分类查看</p>
     </div>
     <div class="page-body"><div class="page-scroll">
-      <div class="stats-row">
+      <div class="stats-row stagger-in">
         <div class="stat-card"><div class="s-icon s-violet"><el-icon :size="20"><Document /></el-icon></div><div class="s-num">{{templates.length}}</div><div class="s-label">模板总数</div></div>
         <div class="stat-card"><div class="s-icon s-blue"><el-icon :size="20"><Folder /></el-icon></div><div class="s-num">{{cats.length}}</div><div class="s-label">分类数量</div></div>
         <div class="stat-card"><div class="s-icon s-green"><el-icon :size="20"><Connection /></el-icon></div><div class="s-num">2</div><div class="s-label">LLM 提供商</div></div>
@@ -24,7 +24,7 @@
         <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">共 {{filtered.length}} 个模板</span>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px;">
+      <div class="stagger-in" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px;">
         <div v-for="t in filtered" :key="t.id" class="tpl-card" @click="showDetail(t)">
           <div class="tpl-name">{{t.name}}</div>
           <div class="tpl-desc">{{t.description}}</div>
@@ -67,7 +67,7 @@
 
           <div v-if="sel.variables&&sel.variables.length" style="margin-top:16px;">
             <div class="card-head">变量预览</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="stagger-in" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
               <div v-for="v in sel.variables" :key="v"><el-input :placeholder="'输入 '+v+' 的值'" v-model="previewVars[v]" size="small"><template #prepend>{{v}}</template></el-input></div>
             </div>
             <el-button size="small" @click="previewTemplate" type="primary" :icon="View">预览渲染结果</el-button>

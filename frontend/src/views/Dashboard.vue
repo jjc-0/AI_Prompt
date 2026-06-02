@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><Odometer /></el-icon>数据仪表盘</h2>
@@ -7,7 +7,7 @@
     <div class="page-body">
       <div class="page-scroll">
         <!-- Stat Cards -->
-        <div class="stats-row">
+        <div class="stats-row stagger-in">
           <div class="stat-card">
             <div class="s-icon s-blue"><el-icon :size="20"><ChatLineSquare /></el-icon></div>
             <div class="s-num">{{ stats.todayConversations }}</div>
@@ -41,7 +41,7 @@
         </div>
 
         <!-- Charts Row — fills remaining height -->
-        <div style="display:flex;gap:14px;flex:1;min-height:0;">
+        <div class="slide-up" style="display:flex;gap:14px;flex:1;min-height:0;">
           <div class="chart-box" style="flex:2;">
             <div class="card-head">对话趋势 · 近7天</div>
             <div class="chart-body"><v-chart :option="lineOpt" autoresize /></div>
@@ -57,7 +57,7 @@
         </div>
 
         <!-- Bottom Row: Workflow + Recent Sessions -->
-        <div style="display:flex;gap:14px;flex-shrink:0;">
+        <div class="slide-up" style="display:flex;gap:14px;flex-shrink:0;animation-delay:0.1s;">
           <div class="card" style="flex:1;">
             <div class="card-head">Multi-Agent 工作流</div>
             <div class="wf-row">

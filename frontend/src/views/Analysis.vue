@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><TrendCharts /></el-icon>市场分析</h2>
@@ -7,7 +7,7 @@
     <div class="page-body"><div class="page-split">
       <div class="split-side">
         <div class="card" style="padding:10px;flex-shrink:0;"><el-button size="small" @click="loadHistory" :icon="Refresh" style="width:100%;">刷新历史</el-button></div>
-        <div class="card card-fill card-pad0" style="padding:6px;"><div class="sess-list">
+        <div class="card card-fill card-pad0" style="padding:6px;"><div class="sess-list stagger-in">
           <div v-if="historyList.length===0" style="text-align:center;padding:36px 16px;color:var(--text-muted);font-size:13px;"><el-icon :size="26" style="margin-bottom:8px;"><TrendCharts /></el-icon><div>暂无历史</div></div>
           <div v-for="h in historyList" :key="h.sessionId" :class="['sess-item',{active:h.sessionId===currentSessionId}]" @click="loadHistoryItem(h)">
             <div class="sess-top"><div class="sess-title" @dblclick.stop="startRename(h)">{{h.title}}</div><div class="sess-actions"><el-button size="small" text @click.stop="startRename(h)"><el-icon><Edit /></el-icon></el-button><el-button size="small" text @click.stop="confirmDelete(h)"><el-icon><Delete /></el-icon></el-button></div></div>
@@ -28,7 +28,7 @@
             <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left:auto;"><el-icon :size="12"><Check /></el-icon>已保存</el-tag>
           </div>
         </div>
-        <div v-if="result" class="card slide-up"><div class="card-head">分析报告</div><div class="result-box" v-html="rendered"></div></div>
+        <div v-if="result" class="card result-box-animated"><div class="card-head">分析报告</div><div class="result-box" v-html="rendered"></div></div>
       </div></div>
     </div></div>
     <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">

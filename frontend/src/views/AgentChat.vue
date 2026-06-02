@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div style="display:flex;flex-direction:column;height:100%;">
     <div class="page-header">
       <h2><el-icon :size="20"><ChatDotRound /></el-icon>AI Agent 对话</h2>
@@ -15,7 +15,7 @@
             </div>
           </div>
           <div class="card card-fill card-pad0" style="padding:6px;">
-            <div class="sess-list">
+            <div class="sess-list stagger-in">
               <div v-if="sessions.length===0" style="text-align:center;padding:36px 16px;color:var(--text-muted);font-size:13px;">
                 <el-icon :size="26" style="margin-bottom:8px;"><ChatLineSquare /></el-icon>
                 <div>暂无会话</div>
@@ -39,7 +39,7 @@
         <!-- Chat area -->
         <div class="split-main">
           <div class="card card-fill card-pad0">
-            <div class="chat-wrap">
+            <div class="chat-wrap fade-in">
               <div class="chat-msgs">
                 <div v-if="messages.length===0" class="empty-state">
                   <div class="empty-avatar"><el-icon :size="34"><Cpu /></el-icon></div>
@@ -79,7 +79,7 @@
               <div class="chat-input">
                 <el-switch v-model="enableTools" active-text="工具" size="small" style="flex-shrink:0;"/>
                 <el-input v-model="inputText" placeholder="输入消息，Enter 发送..." @keyup.enter="sendMessage" :disabled="loading" clearable/>
-                <el-button type="primary" @click="sendMessage" :loading="loading" :icon="Promotion">发送</el-button>
+                <el-button type="primary" @click="sendMessage" :loading="loading" :class="{'btn-pulse': loading}" :icon="Promotion">发送</el-button>
               </div>
             </div>
           </div>

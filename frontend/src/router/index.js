@@ -1,21 +1,33 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
     path: '/',
-    redirect: '/agent'
+    redirect: '/dashboard'
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('../views/Dashboard.vue'),
+    meta: { title: '数据仪表盘' }
   },
   {
     path: '/agent',
     name: 'AgentChat',
     component: () => import('../views/AgentChat.vue'),
-    meta: { title: 'AI 助手对话' }
+    meta: { title: 'AI Agent 对话' }
+  },
+  {
+    path: '/inquiry',
+    name: 'InquiryScoring',
+    component: () => import('../views/InquiryScoring.vue'),
+    meta: { title: '询盘价值评分' }
   },
   {
     path: '/copywriting',
     name: 'CopyWriting',
     component: () => import('../views/CopyWriting.vue'),
-    meta: { title: '产品文案 & 询盘回复' }
+    meta: { title: '文案 & 询盘回复' }
   },
   {
     path: '/translate',
@@ -27,7 +39,7 @@ const routes = [
     path: '/analysis',
     name: 'Analysis',
     component: () => import('../views/Analysis.vue'),
-    meta: { title: '展示架市场分析' }
+    meta: { title: '市场分析' }
   },
   {
     path: '/templates',
@@ -40,6 +52,11 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.afterEach((to) => {
+  const title = to.meta.title
+  document.title = title ? title + ' - JC Display AI Agent' : 'JC Display AI Agent'
 })
 
 export default router

@@ -1,17 +1,18 @@
-<template>
+﻿<template>
   <div>
     <div class="page-header">
-      <h2><el-icon :size="20"><EditPen /></el-icon> 产品文案 & 询盘回复</h2>
-      <p>基于 Prompt Engineering，为展示架 B2B 出口生成专业产品详情和询盘回复邮件</p>
+      <h2><el-icon :size="22"><EditPen /></el-icon> 文案 & 询盘回复</h2>
+      <p>基于 Prompt Engineering · 为展示架 B2B 出口生成专业产品详情和询盘回复邮件</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px;">
-      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
-        <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新</el-button>
+      <div style="width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="padding: 14px;">
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 280px);">
-          <div v-if="historyList.length === 0" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px;">
-            暂无文案生成历史
+          <div v-if="historyList.length === 0" style="text-align: center; padding: 30px; color: var(--text-secondary); font-size: 13px;">
+            <el-icon :size="28" style="color:var(--text-muted);margin-bottom:8px;"><Document /></el-icon>
+            <div>暂无生成历史</div>
           </div>
           <div v-for="h in historyList" :key="h.sessionId"
             @click="loadHistoryItem(h)"
@@ -35,21 +36,21 @@
           <div class="card-title">产品信息</div>
           <div class="form-row">
             <el-form-item label="产品名称" style="flex: 2;">
-              <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" />
+              <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" size="large" />
             </el-form-item>
             <el-form-item label="文案类型" style="flex: 1;">
-              <el-select v-model="form.platform" placeholder="选择类型">
+              <el-select v-model="form.platform" placeholder="选择类型" size="large">
                 <el-option label="B2B 产品详情" value="alibaba" />
                 <el-option label="询盘回复邮件" value="email" />
               </el-select>
             </el-form-item>
             <el-form-item label="目标市场" style="flex: 1;">
-              <el-select v-model="form.targetCountry" placeholder="选择国家">
-                <el-option label="美国" value="US" />
-                <el-option label="日本" value="JP" />
-                <el-option label="英国" value="UK" />
-                <el-option label="德国" value="DE" />
-                <el-option label="澳大利亚" value="AU" />
+              <el-select v-model="form.targetCountry" placeholder="选择国家" size="large">
+                <el-option label="🇺🇸 美国" value="US" />
+                <el-option label="🇯🇵 日本" value="JP" />
+                <el-option label="🇬🇧 英国" value="UK" />
+                <el-option label="🇩🇪 德国" value="DE" />
+                <el-option label="🇦🇺 澳大利亚" value="AU" />
               </el-select>
             </el-form-item>
           </div>
@@ -62,41 +63,44 @@
           <div class="form-row">
             <el-form-item label="文案风格" style="flex: 1;">
               <el-select v-model="form.style" placeholder="选择风格">
-                <el-option label="专业工厂" value="专业且有吸引力" />
-                <el-option label="热情友好" value="亲切但不过度热情" />
-                <el-option label="简洁高效" value="简洁明了，突出卖点" />
+                <el-option label="🏭 专业工厂" value="专业且有吸引力" />
+                <el-option label="🤝 热情友好" value="亲切但不过度热情" />
+                <el-option label="⚡ 简洁高效" value="简洁明了，突出卖点" />
               </el-select>
             </el-form-item>
             <el-form-item label="输出语言" style="flex: 1;">
               <el-select v-model="form.language" placeholder="English">
                 <el-option label="English" value="English" />
-                <el-option label="Japanese" value="Japanese" />
-                <el-option label="German" value="German" />
+                <el-option label="日本語" value="Japanese" />
+                <el-option label="Deutsch" value="German" />
               </el-select>
             </el-form-item>
           </div>
           <div style="display: flex; gap: 12px; align-items: center;">
-            <el-button type="primary" @click="generateCopy" :loading="generating" :icon="Edit">
+            <el-button type="primary" @click="generateCopy" :loading="generating" :icon="EditPen" size="large">
               生成文案
             </el-button>
-            <el-tag v-if="generating" type="warning">生成中...</el-tag>
+            <el-tag v-if="generating" type="warning" size="large">🤖 AI 生成中...</el-tag>
             <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">
               <el-icon :size="12"><Check /></el-icon> 已保存
             </el-tag>
           </div>
         </div>
-        <div v-if="result" class="card" style="margin-top: 16px;">
+        <div v-if="result" class="card slide-up" style="margin-top: 16px;">
           <div class="card-title">生成结果</div>
           <div class="result-box" v-html="renderedResult"></div>
-          <div style="margin-top: 14px; display: flex; gap: 8px;">
-            <el-button size="small" @click="copyResult">复制结果</el-button>
-            <el-button size="small" @click="generateCopy" :loading="generating">重新生成</el-button>
+          <div style="margin-top: 16px; display: flex; gap: 10px;">
+            <el-button @click="copyResult" :icon="CopyDocument">复制结果</el-button>
+            <el-button @click="generateCopy" :loading="generating">重新生成</el-button>
+            <span v-if="resultInfo.model" style="margin-left: auto; font-size: 12px; color: var(--text-muted); display: flex; align-items: center;">
+              模型: {{ resultInfo.model }} · {{ resultInfo.processingTimeMs }}ms
+            </span>
           </div>
         </div>
       </div>
     </div>
 
-    <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">
+    <el-dialog v-model="renameVisible" title="重命名" width="420px" :close-on-click-modal="false">
       <el-input v-model="renameValue" placeholder="输入新名称" @keyup.enter="doRename" maxlength="60" show-word-limit />
       <template #footer><el-button @click="renameVisible = false">取消</el-button><el-button type="primary" @click="doRename">确定</el-button></template>
     </el-dialog>
@@ -106,7 +110,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Delete, EditPen, Refresh, Check } from '@element-plus/icons-vue'
+import { Edit, Delete, EditPen, Refresh, Check, CopyDocument, Document } from '@element-plus/icons-vue'
 import { copywritingApi, agentApi } from '../api/index.js'
 
 const form = ref({

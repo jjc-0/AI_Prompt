@@ -1,17 +1,18 @@
-<template>
+﻿<template>
   <div>
     <div class="page-header">
-      <h2><el-icon :size="20"><Connection /></el-icon> 多语言翻译</h2>
-      <p>展示架行业专业翻译，支持多语言互译，保留营销效果</p>
+      <h2><el-icon :size="22"><Connection /></el-icon> 多语言翻译</h2>
+      <p>展示架行业专业翻译 · 支持多语言互译 · 跨境电商本地化增强</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px;">
-      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
-        <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新</el-button>
+      <div style="width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="padding: 14px;">
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 280px);">
-          <div v-if="historyList.length === 0" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px;">
-            暂无翻译历史
+          <div v-if="historyList.length === 0" style="text-align: center; padding: 30px; color: var(--text-secondary); font-size: 13px;">
+            <el-icon :size="28" style="color:var(--text-muted);margin-bottom:8px;"><Connection /></el-icon>
+            <div>暂无翻译历史</div>
           </div>
           <div v-for="h in historyList" :key="h.sessionId"
             @click="loadHistoryItem(h)"
@@ -35,45 +36,47 @@
           <div class="card-title">翻译设置</div>
           <div class="form-row">
             <el-form-item label="源语言" style="flex: 1;">
-              <el-select v-model="form.sourceLanguage">
+              <el-select v-model="form.sourceLanguage" size="large">
                 <el-option label="中文" value="中文" />
-                <el-option label="英语" value="English" />
-                <el-option label="日语" value="Japanese" />
+                <el-option label="English" value="English" />
+                <el-option label="日本語" value="Japanese" />
               </el-select>
             </el-form-item>
             <el-form-item label="目标语言" style="flex: 1;">
-              <el-select v-model="form.targetLanguage">
-                <el-option label="英语" value="英文" />
-                <el-option label="日语" value="日文" />
-                <el-option label="韩语" value="韩文" />
-                <el-option label="德语" value="德文" />
-                <el-option label="法语" value="法文" />
-                <el-option label="西班牙语" value="西班牙文" />
+              <el-select v-model="form.targetLanguage" size="large">
+                <el-option label="🇬🇧 English" value="英文" />
+                <el-option label="🇯🇵 日本語" value="日文" />
+                <el-option label="🇰🇷 한국어" value="韩文" />
+                <el-option label="🇩🇪 Deutsch" value="德文" />
+                <el-option label="🇫🇷 Français" value="法文" />
+                <el-option label="🇪🇸 Español" value="西班牙文" />
               </el-select>
             </el-form-item>
           </div>
           <div class="form-row">
             <el-form-item label="待翻译文本" style="flex: 1;">
-              <el-input v-model="form.text" type="textarea" :rows="3" placeholder="输入要翻译的文本..." />
+              <el-input v-model="form.text" type="textarea" :rows="4" placeholder="输入要翻译的文本..." size="large" />
             </el-form-item>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <el-button type="primary" @click="doTranslate" :loading="translating" :icon="Reading">智能翻译</el-button>
-            <el-checkbox v-model="form.ecommerceLocalization" label="本地化增强" size="small" />
-            <el-tag v-if="translating" type="warning">翻译中...</el-tag>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <el-button type="primary" @click="doTranslate" :loading="translating" :icon="Reading" size="large">
+              智能翻译
+            </el-button>
+            <el-checkbox v-model="form.ecommerceLocalization" label="电商本地化增强" size="small" border />
+            <el-tag v-if="translating" type="warning" size="large">🤖 翻译中...</el-tag>
             <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">
               <el-icon :size="12"><Check /></el-icon> 已保存
             </el-tag>
           </div>
         </div>
-        <div v-if="result" class="card" style="margin-top: 16px;">
+        <div v-if="result" class="card slide-up" style="margin-top: 16px;">
           <div class="card-title">翻译结果</div>
           <div class="result-box" v-html="renderedResult"></div>
         </div>
       </div>
     </div>
 
-    <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">
+    <el-dialog v-model="renameVisible" title="重命名" width="420px" :close-on-click-modal="false">
       <el-input v-model="renameValue" placeholder="输入新名称" @keyup.enter="doRename" maxlength="60" show-word-limit />
       <template #footer><el-button @click="renameVisible = false">取消</el-button><el-button type="primary" @click="doRename">确定</el-button></template>
     </el-dialog>

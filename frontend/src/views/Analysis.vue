@@ -1,17 +1,18 @@
-<template>
+﻿<template>
   <div>
     <div class="page-header">
-      <h2><el-icon :size="20"><TrendCharts /></el-icon> 展示架市场分析</h2>
-      <p>分析展示架/POP 产品在不同国家市场的出口机会与竞争态势</p>
+      <h2><el-icon :size="22"><TrendCharts /></el-icon> 市场分析</h2>
+      <p>分析展示架 POP 产品在不同国家市场的出口机会与竞争态势 · RAG 知识增强</p>
     </div>
     <div class="page-content" style="display: flex; gap: 16px;">
-      <div style="width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
-        <div class="card" style="padding: 12px;">
-          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新</el-button>
+      <div style="width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="padding: 14px;">
+          <el-button size="small" @click="loadHistory" :icon="Refresh" style="width: 100%;">刷新历史</el-button>
         </div>
         <div class="card" style="padding: 8px; flex: 1; overflow-y: auto; max-height: calc(100vh - 280px);">
-          <div v-if="historyList.length === 0" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px;">
-            暂无市场分析历史
+          <div v-if="historyList.length === 0" style="text-align: center; padding: 30px; color: var(--text-secondary); font-size: 13px;">
+            <el-icon :size="28" style="color:var(--text-muted);margin-bottom:8px;"><TrendCharts /></el-icon>
+            <div>暂无分析历史</div>
           </div>
           <div v-for="h in historyList" :key="h.sessionId"
             @click="loadHistoryItem(h)"
@@ -34,37 +35,37 @@
         <div class="card">
           <div class="card-title">分析参数</div>
           <div class="form-row">
-            <el-form-item label="商品名称" style="flex: 1;">
-              <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" />
+            <el-form-item label="商品名称" style="flex: 2;">
+              <el-input v-model="form.productName" placeholder="例如：Cardboard Floor Display Stand" size="large" />
             </el-form-item>
             <el-form-item label="目标市场" style="flex: 1;">
-              <el-select v-model="form.targetCountry">
-                <el-option label="美国" value="US" />
-                <el-option label="日本" value="JP" />
-                <el-option label="英国" value="UK" />
-                <el-option label="德国" value="DE" />
-                <el-option label="韩国" value="KR" />
+              <el-select v-model="form.targetCountry" size="large">
+                <el-option label="🇺🇸 美国" value="US" />
+                <el-option label="🇯🇵 日本" value="JP" />
+                <el-option label="🇬🇧 英国" value="UK" />
+                <el-option label="🇩🇪 德国" value="DE" />
+                <el-option label="🇰🇷 韩国" value="KR" />
               </el-select>
             </el-form-item>
           </div>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <el-button type="primary" @click="doAnalysis" :loading="analyzing" :icon="TrendCharts">
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <el-button type="primary" @click="doAnalysis" :loading="analyzing" :icon="TrendCharts" size="large">
               深度分析
             </el-button>
-            <el-tag v-if="analyzing" type="warning">分析中...</el-tag>
+            <el-tag v-if="analyzing" type="warning" size="large">🤖 AI 分析中...</el-tag>
             <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left: auto;">
               <el-icon :size="12"><Check /></el-icon> 已保存
             </el-tag>
           </div>
         </div>
-        <div v-if="result" class="card" style="margin-top: 16px;">
+        <div v-if="result" class="card slide-up" style="margin-top: 16px;">
           <div class="card-title">分析报告</div>
           <div class="result-box" v-html="renderedResult"></div>
         </div>
       </div>
     </div>
 
-    <el-dialog v-model="renameVisible" title="重命名" width="400px" :close-on-click-modal="false">
+    <el-dialog v-model="renameVisible" title="重命名" width="420px" :close-on-click-modal="false">
       <el-input v-model="renameValue" placeholder="输入新名称" @keyup.enter="doRename" maxlength="60" show-word-limit />
       <template #footer><el-button @click="renameVisible = false">取消</el-button><el-button type="primary" @click="doRename">确定</el-button></template>
     </el-dialog>

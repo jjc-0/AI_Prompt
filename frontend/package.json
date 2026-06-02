@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
-    "axios": "^1.6.8",
-    "pinia": "^2.1.7",
     "@element-plus/icons-vue": "^2.3.1",
+    "animate.css": "^4.1.1",
+    "axios": "^1.6.8",
+    "echarts": "^6.1.0",
     "element-plus": "^2.7.0",
-    "animate.css": "^4.1.1"
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "vue-echarts": "^8.0.1",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

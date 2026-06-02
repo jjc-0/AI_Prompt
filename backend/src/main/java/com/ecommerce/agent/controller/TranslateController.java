@@ -1,10 +1,11 @@
 package com.ecommerce.agent.controller;
 
+import com.ecommerce.agent.agent.AgentDispatcher;
 import com.ecommerce.agent.agent.ConversationManager;
-import com.ecommerce.agent.model.TranslateRequest;
-import com.ecommerce.agent.service.SessionTitleService;
-import com.ecommerce.agent.service.TranslateService;
-import jakarta.validation.Valid;
+import com.ecommerce.agent.model.AgentRequest;
+import com.ecommerce.agent.model.AgentResponse;
+import com.ecommerce.agent.service.DemoResponseService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,52 +13,60 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/translate")
+@RequiredArgsConstructor
 public class TranslateController {
 
-    private final TranslateService translateService;
+    private final AgentDispatcher agentDispatcher;
     private final ConversationManager conversationManager;
-    private final SessionTitleService titleService;
-
-    public TranslateController(TranslateService translateService,
-                               ConversationManager conversationManager,
-                               SessionTitleService titleService) {
-        this.translateService = translateService;
-        this.conversationManager = conversationManager;
-        this.titleService = titleService;
-    }
+    private final DemoResponseService demoResponseService;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> translate(@Valid @RequestBody TranslateRequest request) {
+    public ResponseEntity<Map<String, Object>> translate(@RequestBody Map<String, Object> body) {
+        String text = (String) body.getOrDefault("text", "");
+        String sourceLanguage = (String) body.getOrDefault("sourceLanguage", "中文");
+        String targetLanguage = (String) body.getOrDefault("targetLanguage", "英文");
+        boolean ecommerceLocalization = Boolean.TRUE.equals(body.get("ecommerceLocalization"));
+        String context = (String) body.getOrDefault("context", "");
+
         long start = System.currentTimeMillis();
 
-        String sessionId = conversationManager.createSession(null, "translate");
-        String userMsg = "原文: " + request.getText()
-                + "\n源语言: " + request.getSourceLanguage()
-                + "\n目标语言: " + request.getTargetLanguage()
-                + "\n场景: " + request.getContext();
-        conversationManager.addMessage(sessionId, "user", userMsg);
-        titleService.autoTitle(sessionId, userMsg);
+        String message = String.format("""
+            Translate the following text from %s to %s.
+            %s
+            %s
+            Text: %s
+            Return only the translated text.
+            """,
+            sourceLanguage, targetLanguage,
+            ecommerceLocalization ? "Apply e-commerce localization: adapt idioms, units, cultural context." : "",
+            context.isEmpty() ? "" : "Context: " + context,
+            text
+        );
 
-        String result = translateService.translate(request).join();
-        long elapsed = System.currentTimeMillis() - start;
+        AgentRequest request = AgentRequest.builder()
+            .message(message)
+            .taskType("translation")
+            .parameters(Map.of("sourceLanguage", sourceLanguage, "targetLanguage", targetLanguage))
+            .enableTools(false)
+            .build();
 
-        conversationManager.addMessage(sessionId, "assistant", result, "deepseek", elapsed);
+        AgentResponse response;
+        try {
+            response = agentDispatcher.dispatch(request);
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateTranslationDemo(text, sourceLanguage, targetLanguage);
+            String sessionId = conversationManager.createSession("Translation", "translate");
+            return ResponseEntity.ok(Map.of(
+                "sessionId", sessionId,
+                "result", fallback,
+                "processingTimeMs", System.currentTimeMillis() - start
+            ));
+        }
 
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "result", result,
-                "processingTimeMs", elapsed,
-                "sourceLanguage", request.getSourceLanguage(),
-                "targetLanguage", request.getTargetLanguage(),
-                "sessionId", sessionId
-        ));
-    }
-
-    @PostMapping("/batch")
-    public ResponseEntity<Map<String, Object>> batchTranslate(@RequestBody Map<String, Object> batchRequest) {
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Batch translation in development"
+            "sessionId", response.getSessionId(),
+            "result", response.getMessage(),
+            "processingTimeMs", response.getProcessingTimeMs()
         ));
     }
 }

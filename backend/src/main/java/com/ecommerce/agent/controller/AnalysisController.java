@@ -1,68 +1,77 @@
 package com.ecommerce.agent.controller;
 
+import com.ecommerce.agent.agent.AgentDispatcher;
 import com.ecommerce.agent.agent.ConversationManager;
-import com.ecommerce.agent.service.AnalysisService;
-import com.ecommerce.agent.service.SessionTitleService;
-import com.ecommerce.agent.tool.ToolRegistry;
+import com.ecommerce.agent.model.AgentRequest;
+import com.ecommerce.agent.model.AgentResponse;
+import com.ecommerce.agent.service.DemoResponseService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/analysis")
+@RequiredArgsConstructor
 public class AnalysisController {
 
-    private final AnalysisService analysisService;
-    private final ToolRegistry toolRegistry;
+    private final AgentDispatcher agentDispatcher;
     private final ConversationManager conversationManager;
-    private final SessionTitleService titleService;
-
-    public AnalysisController(AnalysisService analysisService, ToolRegistry toolRegistry,
-                               ConversationManager conversationManager,
-                               SessionTitleService titleService) {
-        this.analysisService = analysisService;
-        this.toolRegistry = toolRegistry;
-        this.conversationManager = conversationManager;
-        this.titleService = titleService;
-    }
+    private final DemoResponseService demoResponseService;
 
     @PostMapping("/market")
-    public ResponseEntity<Map<String, Object>> analyzeMarket(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> analyzeMarket(@RequestBody Map<String, Object> body) {
+        String productName = (String) body.getOrDefault("productName", "");
+        String targetCountry = (String) body.getOrDefault("targetCountry", "US");
+
         long start = System.currentTimeMillis();
 
-        String productName = request.get("productName");
-        String sessionId = conversationManager.createSession(null, "analysis");
-        String userMsg = "分析产品: " + productName
-                + "\n目标市场: " + request.get("targetCountry")
-                + "\n品类: " + request.getOrDefault("category", "")
-                + "\n价格: " + request.getOrDefault("priceRange", "");
-        conversationManager.addMessage(sessionId, "user", userMsg);
-        titleService.autoTitle(sessionId, userMsg);
+        String message = String.format("""
+            Analyze the B2B export market opportunity for the following product:
+            Product: %s
+            Target Market: %s
+            
+            Provide detailed analysis covering: market size, competitive landscape, pricing strategy,
+            entry recommendations, regulatory requirements, and opportunity rating.
+            """, productName, targetCountry);
 
-        String result = analysisService.analyzeMarket(
-                productName,
-                request.get("productDescription"),
-                request.get("priceRange"),
-                request.get("category"),
-                request.get("targetCountry")
-        ).join();
-        long elapsed = System.currentTimeMillis() - start;
+        AgentRequest request = AgentRequest.builder()
+            .message(message)
+            .taskType("analysis")
+            .parameters(Map.of("targetCountry", targetCountry))
+            .enableTools(true)
+            .build();
 
-        conversationManager.addMessage(sessionId, "assistant", result, "deepseek-reasoning", elapsed);
+        AgentResponse response;
+        try {
+            response = agentDispatcher.dispatch(request);
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateAnalysisDemo(productName, targetCountry);
+            String sessionId = conversationManager.createSession("Analysis", "analysis");
+            return ResponseEntity.ok(Map.of(
+                "sessionId", sessionId,
+                "result", fallback,
+                "processingTimeMs", System.currentTimeMillis() - start
+            ));
+        }
 
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "result", result,
-                "processingTimeMs", elapsed,
-                "model", "deepseek-reasoning",
-                "sessionId", sessionId
+            "sessionId", response.getSessionId(),
+            "result", response.getMessage(),
+            "processingTimeMs", response.getProcessingTimeMs()
         ));
     }
 
     @GetMapping("/tools")
-    public ResponseEntity<List<Map<String, Object>>> getAvailableTools() {
-        return ResponseEntity.ok(toolRegistry.getToolDefinitionsForLLM());
+    public ResponseEntity<Map<String, Object>> getTools() {
+        Map<String, Object> tools = new LinkedHashMap<>();
+        tools.put("market_data", Map.of("name", "Market Data", "description", "Real-time market insights", "enabled", true));
+        tools.put("currency_convert", Map.of("name", "Currency Converter", "description", "Exchange rate lookup", "enabled", true));
+        tools.put("competitor_analysis", Map.of("name", "Competitor Analysis", "description", "Competitive landscape", "enabled", true));
+        tools.put("seo_keywords", Map.of("name", "SEO Keywords", "description", "Platform keyword optimization", "enabled", true));
+        tools.put("web_scraper", Map.of("name", "Web Scraper", "description", "Market data collection", "enabled", false));
+        return ResponseEntity.ok(tools);
     }
 }

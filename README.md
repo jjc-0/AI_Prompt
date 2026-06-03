@@ -1,6 +1,6 @@
 # JC Display AI Agent — 跨境电商智能运营助手
 
-基于 LLM Agent + RAG 的展示架（POP Display）B2B 出口 AI 助手，面向深圳杰创展示公司的跨境业务场景，提供智能对话、文案生成、多语言翻译和市场分析能力。
+基于 LLM Agent + RAG 的展示架（POP Display）B2B 出口 AI 助手，面向深圳杰创展示公司的跨境业务场景，提供智能对话、文案生成、询盘评分、多语言翻译和市场分析能力。
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D)](https://vuejs.org/)
@@ -13,14 +13,16 @@
 
 | 功能 | 说明 |
 |---|---|
-| **🤖 AI Agent 对话** | 多轮对话 + 工具调用（搜索、网页抓取、翻译、汇率、SEO），支持 DeepSeek / OpenAI 双引擎 |
-| **✍️ 产品文案 & 询盘回复** | 基于 Prompt Engineering 生成展示架 B2B 产品详情和英文询盘回复邮件 |
-| **🌐 多语言翻译** | 展示架行业专业翻译，支持多语言互译与跨境电商本地化增强 |
-| **📊 市场分析** | 分析展示架/POP 产品在不同国家市场的出口机会，结合 RAG 知识库 |
-| **📋 Prompt 模板** | 可配置的 Prompt 模板管理与版本控制 |
-| **📚 RAG 知识库** | 10 篇业务知识文档向量化检索，增强 LLM 回答的专业性 |
-| **💬 会话管理** | 对话持久化存储、自动 AI 命名、历史回溯 |
-| **🎨 现代 UI** | Vue 3 + Element Plus，靛蓝紫配色，animate.css 动效 |
+| **数据仪表盘** | 可视化展示系统运行状态、API 调用统计与业务概览 |
+| **AI Agent 对话** | 多轮对话 + 工具调用（搜索、网页抓取、翻译、汇率、SEO），支持 DeepSeek / OpenAI 双引擎 |
+| **询盘价值评分** | 对 B2B 询盘进行智能分析，评估客户质量与成交潜力 |
+| **产品文案 & 询盘回复** | 基于 Prompt Engineering 生成展示架 B2B 产品详情和英文询盘回复邮件，支持协同生成 |
+| **多语言翻译** | 展示架行业专业翻译，支持多语言互译与跨境电商本地化增强 |
+| **市场分析** | 分析展示架/POP 产品在不同国家市场的出口机会，结合 RAG 知识库 |
+| **Prompt 模板** | 可配置的 Prompt 模板管理与预览 |
+| **RAG 知识库** | 10 篇业务知识文档向量化检索，增强 LLM 回答的专业性 |
+| **会话管理** | 对话持久化存储、自动 AI 命名、历史回溯、会话清除 |
+| **现代 UI** | Vue 3 + Element Plus，靛蓝紫配色，animate.css 动效 |
 
 ---
 
@@ -39,8 +41,13 @@
 - **UI 库**: Element Plus 2.7 + Element Plus Icons
 - **状态管理**: Pinia
 - **路由**: Vue Router 4（懒加载 + 过渡动画）
+- **图表**: ECharts 6 + vue-echarts
 - **动画**: animate.css 4.1
 - **构建**: Vite 5
+
+---
+
+## 项目结构
 
 ```
 项目根目录
@@ -51,9 +58,15 @@
 │   │   │   └── ConversationManager.java  # 会话 CRUD（内存 + MySQL 双写）
 │   │   ├── config/                   # 全局配置与异常处理
 │   │   ├── controller/               # REST API 控制器
+│   │   │   ├── AgentController.java          # Agent 对话与会话管理
+│   │   │   ├── CopywritingController.java    # 产品文案生成
+│   │   │   ├── TranslateController.java      # 多语言翻译
+│   │   │   ├── AnalysisController.java       # 市场分析
+│   │   │   └── TemplateController.java       # Prompt 模板管理
 │   │   ├── llm/                      # LLM 提供者适配
 │   │   │   ├── MultiModelOrchestrator.java  # 多模型编排（reasoning / completion）
 │   │   │   ├── DeepSeekProvider.java        # DeepSeek API 适配
+│   │   │   ├── OpenAIProvider.java          # OpenAI API 适配
 │   │   │   └── PromptTemplateManager.java   # Prompt 模板管理
 │   │   ├── model/                    # 数据模型（DTO + JPA Entity）
 │   │   ├── rag/                      # RAG 检索增强
@@ -63,18 +76,31 @@
 │   │   │   └── KnowledgeDocuments.java   # 10 篇展示架行业知识文档
 │   │   ├── repository/               # Spring Data JPA Repository
 │   │   ├── service/                  # 业务服务层
-│   │   │   └── SessionTitleService.java  # LLM 异步自动命名
+│   │   │   ├── SessionTitleService.java  # LLM 异步自动命名
+│   │   │   └── DemoResponseService.java  # 演示模式响应
 │   │   ├── tool/                     # 可调用工具集
+│   │   │   ├── Tool.java             # 工具抽象接口
+│   │   │   ├── ToolRegistry.java     # 工具注册中心
+│   │   │   ├── SearchTool.java       # Google 搜索工具
+│   │   │   ├── ScraperTool.java      # 网页抓取工具
+│   │   │   ├── TranslateTool.java    # 翻译工具
+│   │   │   ├── CurrencyTool.java     # 汇率转换工具
+│   │   │   └── SEOTool.java          # SEO 分析工具
 │   │   └── util/                     # 工具类（国家语言解析）
 │   └── src/main/resources/
-│       └── application.yml           # 主配置（LLM、RAG、工具、数据库）
+│       ├── application.yml           # 主配置（LLM、RAG、工具、数据库）
+│       └── knowledge/                # RAG 知识文档
+│           ├── company-info.md
+│           └── export-guide.md
 │
 ├── frontend/                         # Vue 3 前端
 │   └── src/
 │       ├── api/index.js              # Axios API 封装
 │       ├── router/index.js           # 路由定义
 │       ├── views/                    # 页面视图
+│       │   ├── Dashboard.vue         # 数据仪表盘
 │       │   ├── AgentChat.vue         # AI Agent 对话页
+│       │   ├── InquiryScoring.vue    # 询盘价值评分页
 │       │   ├── CopyWriting.vue       # 产品文案页
 │       │   ├── Translate.vue         # 多语言翻译页
 │       │   ├── Analysis.vue          # 市场分析页
@@ -102,6 +128,7 @@
 
 ```yaml
 DEEPSEEK_API_KEY: sk-your-deepseek-key
+OPENAI_API_KEY: sk-your-openai-key   # 可选，使用 OpenAI 引擎时配置
 ```
 
 > 该文件已被 `.gitignore` 排除，不会提交到仓库。
@@ -142,7 +169,9 @@ npm run dev
 | `POST` | `/api/agent/chat/tools` | 带工具调用的对话 |
 | `GET` | `/api/agent/sessions` | 获取会话列表 |
 | `GET` | `/api/agent/sessions?operation=copywriting` | 按类型过滤会话 |
-| `GET` | `/api/agent/session/{id}/history` | 获取会话历史 |
+| `GET` | `/api/agent/session/{id}/history` | 获取会话历史（内存） |
+| `GET` | `/api/agent/session/{id}/history/db` | 获取会话历史（数据库） |
+| `POST` | `/api/agent/session/{id}/clear` | 清除会话历史 |
 | `DELETE` | `/api/agent/session/{id}` | 删除会话 |
 | `POST` | `/api/agent/knowledge/search` | 搜索知识库 |
 | `GET` | `/api/agent/knowledge/status` | 知识库状态 |
@@ -152,18 +181,28 @@ npm run dev
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | `POST` | `/api/copywriting/generate` | 生成产品文案/询盘回复 |
+| `POST` | `/api/copywriting/generate/collaborative` | 协同文案生成（多 Agent 协作）|
 
 ### 多语言翻译
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| `POST` | `/api/translate/text` | 文本翻译（支持本地化增强） |
+| `POST` | `/api/translate` | 文本翻译（支持本地化增强） |
 
 ### 市场分析
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | `POST` | `/api/analysis/market` | 市场出口机会分析 |
+| `GET` | `/api/analysis/tools` | 获取可用分析工具列表 |
+
+### Prompt 模板
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/api/copywriting/templates` | 获取模板列表 |
+| `GET` | `/api/copywriting/templates/{id}` | 获取模板详情 |
+| `POST` | `/api/copywriting/templates/{id}/preview` | 预览模板渲染结果 |
 
 ---
 
@@ -191,6 +230,17 @@ npm run dev
 
 首次对话时，先用用户消息前 30 字符作为即时标题，同时异步调用 LLM 提炼 10 字以内的精准标题，2-3 秒后自动更新侧边栏。
 
+### 数据库自动降级
+
+- **MySQL 可用时**: 使用 `jc_agent` 数据库，JPA `ddl-auto: update` 自动建表
+- **MySQL 不可用时**: 自动降级到 H2 内存数据库，`/h2-console` 可查看
+
+| 表名 | 说明 |
+|---|---|
+| `conversation_session` | 会话元数据（标题、类型、消息数） |
+| `conversation_record` | 对话消息记录 |
+| `prompt_template` | Prompt 模板 |
+
 ---
 
 ## 配置项
@@ -202,26 +252,12 @@ npm run dev
 | `ai.providers.deepseek` | DeepSeek API 配置 |
 | `ai.providers.openai` | OpenAI API 配置 |
 | `ai.agent.max-conversation-rounds` | 最大对话轮次（默认 10） |
+| `ai.agent.context-window-size` | 上下文窗口大小（默认 20） |
+| `ai.agent.tool-call-timeout` | 工具调用超时（默认 30000ms） |
 | `ai.rag.max-results` | RAG 检索最大结果数（默认 5） |
 | `ai.rag.min-score` | 相似度最低阈值（默认 0.6） |
 | `tools.search.*` | Google 搜索工具配置 |
 | `tools.scraper.*` | 网页抓取工具配置 |
-| `tools.currency.*` | 汇率工具配置 |
-
----
-
-## 数据库
-
-支持 MySQL 和 H2 自动切换：
-
-- **MySQL 可用时**: 使用 `jc_agent` 数据库，JPA `ddl-auto: update` 自动建表
-- **MySQL 不可用时**: 自动降级到 H2 内存数据库，`/h2-console` 可查看
-
-| 表名 | 说明 |
-|---|---|
-| `conversation_session` | 会话元数据（标题、类型、消息数） |
-| `conversation_record` | 对话消息记录 |
-| `prompt_template` | Prompt 模板 |
 
 ---
 

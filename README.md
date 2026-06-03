@@ -2,6 +2,8 @@
 
 基于 LLM Agent + RAG 的展示架（POP Display）B2B 出口 AI 助手，面向深圳杰创展示公司的跨境业务场景，提供智能对话、文案生成、询盘评分、多语言翻译和市场分析能力。
 
+> **核心亮点：知识库基于真实官网数据。** 内置爬虫从 [displaystandpop.com](http://www.displaystandpop.com) 自动抓取了 **1,435 款在售产品**，覆盖 **17 个品类**，确保 AI 回答始终以真实产品信息为依据，杜绝幻觉。
+
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D)](https://vuejs.org/)
 [![LangChain4j](https://img.shields.io/badge/LangChain4j-0.36.2-blue)](https://docs.langchain4j.dev/)
@@ -20,7 +22,7 @@
 | **多语言翻译** | 展示架行业专业翻译，支持多语言互译与跨境电商本地化增强 |
 | **市场分析** | 分析展示架/POP 产品在不同国家市场的出口机会，结合 RAG 知识库 |
 | **Prompt 模板** | 可配置的 Prompt 模板管理与预览 |
-| **RAG 知识库** | 10 篇业务知识文档向量化检索，增强 LLM 回答的专业性 |
+| **RAG 知识库** | 10 篇行业知识文档 + **1,435 款官网真实产品** 向量化检索，增强 LLM 回答的专业性与准确性 |
 | **会话管理** | 对话持久化存储、自动 AI 命名、历史回溯、会话清除 |
 | **现代 UI** | Vue 3 + Element Plus，靛蓝紫配色，animate.css 动效 |
 
@@ -220,7 +222,7 @@ npm run dev
 
 ## 官网产品爬虫
 
-系统内置了针对公司官网 `displaystandpop.com` 的产品爬虫，可一键抓取所有在售产品信息并纳入 RAG 知识库。
+系统内置了针对公司官网 `displaystandpop.com` 的产品爬虫，可一键抓取全部在售产品信息并纳入 RAG 知识库。当前已抓取 **1,435 款真实产品**，覆盖 **17 个品类**，每款产品包含名称、型号、价格、描述、图片等完整信息。
 
 ### 使用方式
 
@@ -268,11 +270,33 @@ POST /api/scraper/run
 | `url` | 产品详情页URL |
 | `category` | 所属分类 |
 
+### 已覆盖的品类
+
+| # | 品类 |
+|---|---|
+| 1 | Packaging（包装盒） |
+| 2 | Cardboard Display Stands（瓦楞展示架） |
+| 3 | Cardboard Hook Displays（瓦楞钩挂架） |
+| 4 | Cardboard Pallet Displays（瓦楞托盘展示架） |
+| 5 | Counter Display Boxes（柜台展盒） |
+| 6 | Cardboard Dump Bins（瓦楞散装箱） |
+| 7 | Brochure & leaflet holders（宣传册架） |
+| 8 | Cardboard Totem Displays（瓦楞图腾展架） |
+| 9 | Advertising Banners（广告横幅） |
+| 10 | Cardboard Trolley Boxes（瓦楞推车盒） |
+| 11 | Cardboard Cat Scratcher（猫抓板） |
+| 12 | Paper Puzzles（纸质拼图） |
+| 13 | Acrylic Displays（亚克力展架） |
+| 14 | Gift Box Packaging（礼品盒包装） |
+| 15 | Paper Bags（纸质袋） |
+| 16 | Corrugated Boxes（瓦楞纸箱） |
+| 17 | Cosmetic Packaging（化妆品包装） |
+
 ### 注意事项
 
 - 爬虫使用 Jsoup 请求，内置 1.5s 请求间隔防止被反爬
-- 最大抓取数量默认 100 款产品
-- 抓取结果持久化保存，重启后无需重新爬取
+- 最大抓取数量默认 2000 款产品
+- 抓取结果持久化保存（JSON + Markdown），重启后无需重新爬取
 - 执行 `POST /api/scraper/reindex` 将产品数据向量化后纳入 RAG 检索
 - 如网站结构有变化，可调整 `ProductScraper.java` 中的 CSS 选择器
 
@@ -295,7 +319,7 @@ POST /api/scraper/run
 
 - **嵌入模型**: `AllMiniLmL6V2EmbeddingModel`（384 维向量，本地 ONNX 推理）
 - **内置文档**: 10 篇展示架行业知识（公司信息、产品规格、市场分析、合规认证、物流运输、行业展会、术语、B2B 优化、询盘邮件、本地化指南）
-- **产品数据**: 支持从官网 `displaystandpop.com` 自动抓取在售产品信息并嵌入知识库
+- **真实产品数据**: 从官网 `displaystandpop.com` 自动抓取 **1,435 款在售产品**，覆盖包装盒、展示架、钩挂架、托盘架、柜台展盒、散装箱、宣传册架、图腾展架、广告牌、推车盒、猫抓板、纸拼图、亚克力展架、礼品盒、纸袋、瓦楞箱、化妆品包装等 **17 个品类**
 - **切分策略**: `DocumentSplitter.recursive(500, 50)`
 - **检索**: 基于余弦相似度，默认 Top 5，最低阈值 0.6
 

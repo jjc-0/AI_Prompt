@@ -62,7 +62,8 @@
 │   │   │   ├── CopywritingController.java    # 产品文案生成
 │   │   │   ├── TranslateController.java      # 多语言翻译
 │   │   │   ├── AnalysisController.java       # 市场分析
-│   │   │   └── TemplateController.java       # Prompt 模板管理
+│   │   │   ├── TemplateController.java       # Prompt 模板管理
+│   │   │   └── ProductScraperController.java # 官网产品爬虫 API
 │   │   ├── llm/                      # LLM 提供者适配
 │   │   │   ├── MultiModelOrchestrator.java  # 多模型编排（reasoning / completion）
 │   │   │   ├── DeepSeekProvider.java        # DeepSeek API 适配
@@ -73,7 +74,8 @@
 │   │   │   ├── RAGConfig.java        # 嵌入模型与向量存储 Bean 配置
 │   │   │   ├── RAGService.java       # 检索 + 增强 Prompt 构建
 │   │   │   ├── KnowledgeBaseLoader.java  # 文档切分、向量化、入库
-│   │   │   └── KnowledgeDocuments.java   # 10 篇展示架行业知识文档
+│   │   │   ├── KnowledgeDocuments.java   # 10 篇展示架行业知识文档
+│   │   │   └── ProductScraper.java   # 官网产品爬虫（Jsoup）
 │   │   ├── repository/               # Spring Data JPA Repository
 │   │   ├── service/                  # 业务服务层
 │   │   │   ├── SessionTitleService.java  # LLM 异步自动命名
@@ -204,6 +206,76 @@ npm run dev
 | `GET` | `/api/copywriting/templates/{id}` | 获取模板详情 |
 | `POST` | `/api/copywriting/templates/{id}/preview` | 预览模板渲染结果 |
 
+### 产品爬虫
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/scraper/run` | 触发全量产品爬取（官网 → RAG 知识库）|
+| `POST` | `/api/scraper/test` | 测试单个URL抓取效果 |
+| `GET` | `/api/scraper/products` | 分页获取已抓取的产品列表 |
+| `GET` | `/api/scraper/status` | 获取抓取状态（产品数量、更新时间）|
+| `POST` | `/api/scraper/reindex` | 重新加载知识库（含爬取的产品数据）|
+
+---
+
+## 官网产品爬虫
+
+系统内置了针对公司官网 `displaystandpop.com` 的产品爬虫，可一键抓取所有在售产品信息并纳入 RAG 知识库。
+
+### 使用方式
+
+**方式一：通过 API 触发**
+
+```bash
+# 启动后端后，执行全量爬取
+curl -X POST http://localhost:8088/api/scraper/run
+
+# 爬取完成后，重新加载知识库
+curl -X POST http://localhost:8088/api/scraper/reindex
+
+# 查看抓取结果
+curl http://localhost:8088/api/scraper/products
+```
+
+**方式二：测试单个页面**
+
+```bash
+curl -X POST http://localhost:8088/api/scraper/test \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://www.displaystandpop.com/product-url"}'
+```
+
+### 爬虫工作流程
+
+```
+POST /api/scraper/run
+    ├─ 1. 爬取首页，发现分类页和产品链接
+    ├─ 2. 逐页遍历分类列表（含分页）
+    ├─ 3. 逐个抓取产品详情（名称、型号、价格、描述、图片）
+    ├─ 4. 保存为 JSON + Markdown（持久化到 src/main/resources/knowledge/products/）
+    └─ 5. 返回抓取结果（产品数量、名称列表、耗时）
+```
+
+### 抓取字段
+
+| 字段 | 说明 |
+|---|---|
+| `name` | 产品名称 |
+| `sku` | 产品型号/SKU |
+| `price` | 产品价格 |
+| `description` | 产品描述（截取前2000字符）|
+| `imageUrl` | 产品主图链接 |
+| `url` | 产品详情页URL |
+| `category` | 所属分类 |
+
+### 注意事项
+
+- 爬虫使用 Jsoup 请求，内置 1.5s 请求间隔防止被反爬
+- 最大抓取数量默认 100 款产品
+- 抓取结果持久化保存，重启后无需重新爬取
+- 执行 `POST /api/scraper/reindex` 将产品数据向量化后纳入 RAG 检索
+- 如网站结构有变化，可调整 `ProductScraper.java` 中的 CSS 选择器
+
 ---
 
 ## 核心设计
@@ -222,7 +294,8 @@ npm run dev
 ### RAG 知识库
 
 - **嵌入模型**: `AllMiniLmL6V2EmbeddingModel`（384 维向量，本地 ONNX 推理）
-- **文档**: 10 篇展示架行业知识（公司信息、产品规格、市场分析、合规认证、物流运输、行业展会、术语、B2B 优化、询盘邮件、本地化指南）
+- **内置文档**: 10 篇展示架行业知识（公司信息、产品规格、市场分析、合规认证、物流运输、行业展会、术语、B2B 优化、询盘邮件、本地化指南）
+- **产品数据**: 支持从官网 `displaystandpop.com` 自动抓取在售产品信息并嵌入知识库
 - **切分策略**: `DocumentSplitter.recursive(500, 50)`
 - **检索**: 基于余弦相似度，默认 Top 5，最低阈值 0.6
 

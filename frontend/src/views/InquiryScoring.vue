@@ -1,10 +1,10 @@
 <template>
-  <div class="page-fullscreen" style="display:flex;flex-direction:column;height:100%;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><DataAnalysis /></el-icon>询盘价值评分</h2>
       <p>AI 智能分析 B2B 询盘 · 识别采购意图 · 评估成交概率 · 提取关键信息</p>
     </div>
-    <div class="page-body" style="padding:0;">
+    <div class="page-body">
       <div class="page-split">
         <!-- Main area -->
         <div class="split-main">

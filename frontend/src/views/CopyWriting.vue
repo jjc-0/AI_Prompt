@@ -1,10 +1,10 @@
 <template>
-  <div class="page-fullscreen" style="display:flex;flex-direction:column;height:100%;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><EditPen /></el-icon>文案 & 询盘回复</h2>
       <p>Prompt Engineering · 展示架 B2B 出口 · 产品详情 & 询盘邮件</p>
     </div>
-    <div class="page-body" style="padding:0;">
+    <div class="page-body">
       <div class="page-split">
         <div class="split-main">
           <div class="page-scroll">

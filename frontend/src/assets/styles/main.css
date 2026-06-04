@@ -240,9 +240,14 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   overflow: hidden;
   background: var(--bg-body);
+}
+.app-main-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* -------- Top Bar -------- */
@@ -279,18 +284,25 @@ body {
 .page-body {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding: 20px 24px;
 }
 
+/* Full-screen: body fills viewport, no padding */
+.page-fullscreen .page-body { padding: 0; }
+
+/* Templates / no-split pages get horizontal padding back */
+.page-fullscreen .page-body.page-body-padded { padding: 0 28px 20px; }
+
 .page-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
 }
 
 /* ============================================================
@@ -632,24 +644,28 @@ body {
 .page-leave-to { opacity:0; transform: translateY(-6px); }
 
 /* Full-screen pages */
-.page-fullscreen .page-body { padding: 16px 28px; }
 .page-fullscreen .page-scroll { max-width: none; }
 .page-fullscreen .card,.page-fullscreen .result-box { max-width: none; }
 
-/* Split layout preserved for history sidebar */
+/* Split layout fills body height */
 .page-split {
   flex: 1; min-height: 0;
-  display: flex; gap: 14px; overflow: hidden;
+  display: flex; gap: 14px;
 }
 .page-split > .split-side {
   width: 248px; flex-shrink: 0;
   display: flex; flex-direction: column; gap: 10px;
-  overflow: hidden;
 }
 .page-split > .split-main {
-  flex: 1; min-width: 0;
+  flex: 1; min-width: 0; min-height: 0;
   display: flex; flex-direction: column;
-  overflow: hidden;
+}
+
+/* page-scroll inside split-main fills properly, with breathing room */
+.page-split .page-scroll {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 0 24px 24px;
+  gap: 14px;
 }
 
 /* Session list */

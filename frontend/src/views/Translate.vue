@@ -1,10 +1,10 @@
 <template>
-  <div class="page-fullscreen" style="display:flex;flex-direction:column;height:100%;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><Connection /></el-icon>多语言翻译</h2>
       <p>展示架行业专业翻译 · 多语言互译 · 跨境电商本地化增强</p>
     </div>
-    <div class="page-body" style="padding:0;">
+    <div class="page-body">
       <div class="page-split">
         <div class="split-main">
           <div class="page-scroll">

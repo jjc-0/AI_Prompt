@@ -1,13 +1,15 @@
 <template>
-  <div class="page-fullscreen" style="display:flex;flex-direction:column;height:100%;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><Document /></el-icon>Prompt 模板管理</h2>
       <p>可视化管理系统内置 Prompt 模板 · 版本对比 · 变量预览 · 分类查看</p>
     </div>
     <div class="page-body">
-      <div class="page-scroll">
-        <!-- Stats -->
-        <div class="stats-row stagger-in">
+      <div class="page-split">
+        <div class="split-main">
+          <div class="page-scroll">
+            <!-- Stats -->
+            <div class="stats-row stagger-in">
           <div class="stat-card">
             <div class="s-icon s-violet"><el-icon :size="20"><Document /></el-icon></div>
             <div class="s-num">{{ templates.length }}</div>
@@ -157,7 +159,9 @@
             <el-button type="primary" @click="doSave" :loading="saving">{{ editingId ? '更新' : '创建' }}</el-button>
           </template>
         </el-dialog>
+        </div>
       </div>
+    </div>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <template>
-  <div class="page-fullscreen" style="display:flex;flex-direction:column;height:100%;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><ChatDotRound /></el-icon>AI Agent 对话</h2>
       <p>基于 1,435 款真实产品数据 · RAG 增强回答 · 多模型智能调度</p>
@@ -8,7 +8,7 @@
         <el-button size="small" @click="newSession" :icon="Plus">新对话</el-button>
       </div>
     </div>
-    <div class="page-body" style="padding:0;">
+    <div class="page-body">
       <div class="page-split">
         <!-- 左侧：会话历史 -->
         <div class="split-side">

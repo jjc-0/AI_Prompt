@@ -119,11 +119,13 @@
 
     <!-- Main -->
     <main class="app-main">
-      <router-view v-slot="{ Component, route }">
-        <transition name="page" mode="out-in" appear>
-          <component :is="Component" :key="route.path" />
-        </transition>
-      </router-view>
+      <div class="app-main-inner">
+        <router-view v-slot="{ Component, route }">
+          <transition name="page" mode="out-in" appear>
+            <component :is="Component" :key="route.path" />
+          </transition>
+        </router-view>
+      </div>
     </main>
   </div>
 </template>

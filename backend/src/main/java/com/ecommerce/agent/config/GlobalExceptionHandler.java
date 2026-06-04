@@ -32,6 +32,24 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            "success", false, "error", "BAD_REQUEST",
+            "message", ex.getMessage()
+        ));
+    }
+
+    @ExceptionHandler(java.util.concurrent.TimeoutException.class)
+    public ResponseEntity<Map<String, Object>> handleTimeout(java.util.concurrent.TimeoutException ex) {
+        log.error("Request timeout: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(Map.of(
+            "success", false, "error", "TIMEOUT",
+            "message", "Request timed out. Please try again later."
+        ));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         log.error("Runtime exception: {}", ex.getMessage(), ex);

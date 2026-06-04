@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
@@ -42,10 +42,26 @@ const routes = [
     meta: { title: '市场分析' }
   },
   {
+    path: '/analysis/seo',
+    name: 'AnalysisSEO',
+    component: () => import('../views/Analysis.vue'),
+    meta: { title: 'SEO 审计与优化' }
+  },
+  {
+    path: '/analysis/competitor',
+    name: 'AnalysisCompetitor',
+    component: () => import('../views/Analysis.vue'),
+    meta: { title: '竞品分析' }
+  },
+  {
     path: '/templates',
     name: 'Templates',
     component: () => import('../views/Templates.vue'),
     meta: { title: 'Prompt 模板管理' }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/dashboard'
   }
 ]
 

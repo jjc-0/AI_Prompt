@@ -311,6 +311,10 @@ public class PromptTemplateManager {
         templates.put(template.getId(), template);
     }
 
+    public boolean removeTemplate(String id) {
+        return templates.remove(id) != null;
+    }
+
     public PromptTemplate getTemplate(String id) {
         return templates.get(id);
     }
@@ -318,13 +322,11 @@ public class PromptTemplateManager {
     public List<PromptTemplate> getTemplatesByCategory(String category) {
         return templates.values().stream()
                 .filter(t -> t.getCategory().equalsIgnoreCase(category))
-                .filter(PromptTemplate::isActive)
                 .toList();
     }
 
     public List<PromptTemplate> getAllTemplates() {
         return templates.values().stream()
-                .filter(PromptTemplate::isActive)
                 .toList();
     }
 

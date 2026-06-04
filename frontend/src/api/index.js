@@ -31,6 +31,18 @@ export const copywritingApi = {
   },
   previewTemplate(id, variables) {
     return api.post(`/copywriting/templates/${id}/preview`, variables)
+  },
+  createTemplate(data) {
+    return api.post('/copywriting/templates', data)
+  },
+  updateTemplate(id, data) {
+    return api.put(`/copywriting/templates/${id}`, data)
+  },
+  deleteTemplate(id) {
+    return api.delete(`/copywriting/templates/${id}`)
+  },
+  toggleTemplate(id) {
+    return api.put(`/copywriting/templates/${id}/toggle`)
   }
 }
 
@@ -46,6 +58,12 @@ export const analysisApi = {
   },
   getTools() {
     return api.get('/analysis/tools')
+  }
+}
+
+export const inquiryApi = {
+  score(data) {
+    return api.post('/inquiry/score', data)
   }
 }
 

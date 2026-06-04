@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <!-- Sidebar -->
-    <aside class="app-sidebar" v-if="!isAgent">
+    <aside class="app-sidebar">
       <div class="sidebar-logo">
         <div class="sidebar-logo-icon">
           <el-icon :size="20"><Cpu /></el-icon>
@@ -129,15 +129,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref } from 'vue'
 import {
   Cpu, HomeFilled, ChatDotRound, EditPen, Connection, TrendCharts,
   Document, DataAnalysis, Setting, Clock, Message, Link, ArrowRight
 } from '@element-plus/icons-vue'
 
-const route = useRoute()
-const isAgent = computed(() => route.name === 'AgentChat')
 const menuPlugins = ref(false)
 const menuSessions = ref(false)
 </script>

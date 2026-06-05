@@ -190,63 +190,75 @@ public class DemoResponseService {
                 """, productName, country, country, country);
     }
 
-﻿    public String generateSEODemo(String url, String keywords, String targetCountry) {
+    public String generateSEODemo(String url, String keywords, String targetCountry) {
         String country = CountryLanguageUtil.resolveCountryName(targetCountry);
         String kw = keywords != null && !keywords.isBlank() ? keywords : "display stand, cardboard display, POP display";
         return String.format("""
-                馃攧 SEO瀹¤鎶ュ憡 (婕旂ず妯″紡)
+                🔧 SEO优化报告 (演示模式)
 
-                ## 椤甸潰: %s | 鐩爣甯傚満: %s
+                ## 页面: %s | 目标市场: %s
 
-                ## 1. On-Page SEO璇勪及
-                - 鉂?Title Tag闀垮害浼樺寲 (寤鸿40-60瀛楃)
-                - 鉁?Meta Description宸插畬鏁?                - 鉂?H1鏍囩鏈寘鍚富鍏抽敭璇?                - 鉁?鍥剧墖Alt鏍囩宸插畬鏁?
+                ## 1. On-Page SEO评估
+                - ❌ Title Tag长度优化 (建议40-60字符)
+                - ✅ Meta Description已完整
+                - ❌ H1标签未包含主关键词
+                - ✅ 图片Alt标签已完整
 
-                ## 2. 鍏抽敭璇嶄紭鍖?                - 鏍稿績鍏抽敭璇? %s
-                - 闀垮熬鍏抽敭璇嶅缓璁? POP display stand wholesale, custom cardboard display, retail display solutions
-                - 绔炰簤瀵嗗害: 涓瓑
-                - 鏈堟悳绱㈤噺: 2,400-8,100 (US甯傚満)
+                ## 2. 关键词优化
+                - 核心关键词: %s
+                - 长尾关键词建议: POP display stand wholesale, custom cardboard display, retail display solutions
+                - 竞争密度: 中等
+                - 月搜索量: 2,400-8,100 (US市场)
 
-                ## 3. 鎶€鏈疭EO
-                - 鉁?SSL璇佷功宸查厤缃?                - 鉂?椤甸潰鍔犺浇閫熷害: 3.2s (寤鸿<2.5s)
-                - 鉁?Sitemap宸叉彁浜?                - 鉁?Robots.txt姝ｇ‘閰嶇疆
+                ## 3. 技术SEO
+                - ✅ SSL证书已配置
+                - ❌ 页面加载速度: 3.2s (建议<2.5s)
+                - ✅ Sitemap已提交
+                - ✅ Robots.txt正确配置
 
-                ## 4. 浼樺寲寤鸿
-                1. 浼樺寲Title Tag鍖呭惈鍝佺墝璇?                2. 娣诲姞Schema Markup (Product + Organization)
-                3. 鍘嬬缉鍥剧墖浠ユ彁鍗囬〉闈㈤€熷害
-                4. 澧炲姞鍐呴儴閾炬帴鑷崇浉鍏充骇鍝?
+                ## 4. 优化建议
+                1. 优化Title Tag包含品牌词
+                2. 添加Schema Markup (Product + Organization)
+                3. 压缩图片以提升页面速度
+                4. 增加内部链接至相关产品
 
                 ---
-                馃搶 鎻愮ず: 閰嶇疆 DeepSeek API Key 鍚庡彲鑾峰緱鐪熸鐨?AI SEO鍒嗘瀽銆?                """, url, country, kw);
+                📌 提示: 配置 DeepSeek API Key 后可获得真正的 AI SEO分析。
+                """, url, country, kw);
     }
 
     public String generateCompetitorDemo(String competitorUrl, String targetCountry) {
         String country = CountryLanguageUtil.resolveCountryName(targetCountry);
         return String.format("""
-                馃攳 绔炲搧鍒嗘瀽鎶ュ憡 (婕旂ず妯″紡)
+                🔳 竞品分析报告 (演示模式)
 
-                ## 绔炲搧: %s | 鐩爣甯傚満: %s
+                ## 竞品: %s | 目标市场: %s
 
-                ## 1. 鍏徃姒傝
-                - 绫诲瀷: POP灞曠ず鏋跺埗閫犲晢/璐告槗鍏徃
-                - 瑙勬ā: 涓瀷浼佷笟
-                - 涓昏甯傚満: %s
+                ## 1. 公司概况
+                - 类型: POP展示架制造商/贸易公司
+                - 规模: 中型企业
+                - 主要市场: %s
 
-                ## 2. 浜у搧绔炰簤鍔?
-                | 缁村害 | JC Display | 绔炲搧 |
+                ## 2. 产品竞争力
+                | 维度 | JC Display | 竞品 |
                 |--------|-----------|------|
-                | 浠锋牸 | 鈽呪槄鈽呪槄鈽?| 鈽呪槄鈽?
-                | 璐ㄩ噺 | 鈽呪槄鈽呪槄 | 鈽呪槄鈽呪槄 |
-                | 瀹氬埗 | 鈽呪槄鈽呪槄鈽?| 鈽呪槄 |
-                | 浜よ揣 | 鈽呪槄鈽呪槄 | 鈽呪槄鈽呪槄鈽?
+                | 价格 | ★★★★★ | ★★★ |
+                | 质量 | ★★★★ | ★★★★ |
+                | 定制 | ★★★★★ | ★★ |
+                | 交货 | ★★★★ | ★★★★★ |
 
-                ## 3. 宸紓鍖栦紭鍔?                - JC Display浼樺娍: 17骞磋涓氱粡楠屻€佸厤璐硅璁°€佸钩鎽婂寘瑁呰妭鐪佽繍璐?                - 绔炲搧浼樺娍: 蹇€熷皬鎵归噺浜よ揣
+                ## 3. 差异化优势
+                - JC Display优势: 17年行业经验、免费设计、平摊包装节省运费
+                - 竞品优势: 快速小批量交货
 
-                ## 4. 绔炰簤绛栫暐寤鸿
-                1. 绐佸嚭"17骞寸粡楠?+ 鍏嶈垂璁捐"鍝佺墝宸紓鍖?                2. 閽堝绔炲搧浠锋牸鏍囨敞"鎵瑰彂浠锋牸鏇翠紭"琢?                3. 鍒朵綔绔炲搧瀵规瘮琛ㄧ敤浜庨攢鍞瘽鏈?
+                ## 4. 竞争策略建议
+                1. 突出"17年经验 + 免费设计"品牌差异化
+                2. 针对竞品价格标注"批发价格更优"
+                3. 制作竞品对比表用于销售话术
 
                 ---
-                馃搶 鎻愮ず: 閰嶇疆 DeepSeek API Key 鍚庡彲鑾峰緱鐪熸鐨?AI绔炲搧鍒嗘瀽銆?                """, competitorUrl, country, country);
+                📌 提示: 配置 DeepSeek API Key 后可获得真正的 AI竞品分析。
+                """, competitorUrl, country, country);
     }
 
 }

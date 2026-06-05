@@ -300,6 +300,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 0 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;

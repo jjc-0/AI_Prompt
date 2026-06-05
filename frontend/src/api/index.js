@@ -56,6 +56,12 @@ export const analysisApi = {
   analyzeMarket(data) {
     return api.post('/analysis/market', data)
   },
+  analyzeSEO(data) {
+    return api.post('/analysis/seo', data)
+  },
+  analyzeCompetitor(data) {
+    return api.post('/analysis/competitor', data)
+  },
   getTools() {
     return api.get('/analysis/tools')
   }

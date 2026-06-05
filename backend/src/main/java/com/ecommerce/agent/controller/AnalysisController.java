@@ -74,4 +74,96 @@ public class AnalysisController {
         tools.put("web_scraper", Map.of("name", "Web Scraper", "description", "Market data collection", "enabled", false));
         return ResponseEntity.ok(tools);
     }
+
+    @PostMapping("/seo")
+    public ResponseEntity<Map<String, Object>> analyzeSEO(@RequestBody Map<String, Object> body) {
+        String url = (String) body.getOrDefault("url", "");
+        String keywords = (String) body.getOrDefault("keywords", "");
+        String targetCountry = (String) body.getOrDefault("targetCountry", "US");
+
+        long start = System.currentTimeMillis();
+
+        String message = String.format("""
+            Perform an SEO audit for the following product page:
+            URL: %s
+            Target Keywords: %s
+            Target Market: %s
+            
+            Provide comprehensive analysis covering: on-page SEO factors, keyword optimization,
+            content quality, technical SEO issues, backlink opportunities, and actionable recommendations.
+            Format as a structured report with priority ratings.
+            """, url, keywords, targetCountry);
+
+        AgentRequest request = AgentRequest.builder()
+            .message(message)
+            .taskType("analysis_seo")
+            .parameters(Map.of("targetCountry", targetCountry))
+            .enableTools(true)
+            .build();
+
+        AgentResponse response;
+        try {
+            response = agentDispatcher.dispatch(request);
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateSEODemo(url, keywords, targetCountry);
+            String sessionId = conversationManager.createSession("SEO Analysis", "analysis");
+            return ResponseEntity.ok(Map.of(
+                "sessionId", sessionId,
+                "result", fallback,
+                "processingTimeMs", System.currentTimeMillis() - start
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "sessionId", response.getSessionId(),
+            "result", response.getMessage(),
+            "processingTimeMs", response.getProcessingTimeMs()
+        ));
+    }
+
+    @PostMapping("/competitor")
+    public ResponseEntity<Map<String, Object>> analyzeCompetitor(@RequestBody Map<String, Object> body) {
+        String competitorUrl = (String) body.getOrDefault("competitorUrl", "");
+        String targetCountry = (String) body.getOrDefault("targetCountry", "US");
+        String category = (String) body.getOrDefault("category", "floor_display");
+
+        long start = System.currentTimeMillis();
+
+        String message = String.format("""
+            Analyze a competitor in the display stand / POP industry:
+            Competitor URL: %s
+            Target Market: %s
+            Product Category: %s
+            
+            Provide detailed competitive analysis covering: product positioning, pricing strategy,
+            strengths and weaknesses, market differentiation, and recommendations for JC Display.
+            """, competitorUrl, targetCountry, category);
+
+        AgentRequest request = AgentRequest.builder()
+            .message(message)
+            .taskType("analysis_competitor")
+            .parameters(Map.of("targetCountry", targetCountry))
+            .enableTools(true)
+            .build();
+
+        AgentResponse response;
+        try {
+            response = agentDispatcher.dispatch(request);
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateCompetitorDemo(competitorUrl, targetCountry);
+            String sessionId = conversationManager.createSession("Competitor Analysis", "analysis");
+            return ResponseEntity.ok(Map.of(
+                "sessionId", sessionId,
+                "result", fallback,
+                "processingTimeMs", System.currentTimeMillis() - start
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "sessionId", response.getSessionId(),
+            "result", response.getMessage(),
+            "processingTimeMs", response.getProcessingTimeMs()
+        ));
+    }
+
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
-      <h2><el-icon :size="20"><TrendCharts /></el-icon>市场分析</h2>
+      <h2><el-icon :size="20"><TrendCharts /></el-icon>{{ pageTitle }}</h2>
       <p>展示架 POP 产品出口机会分析 · 竞争态势 · RAG 知识增强</p>
     </div>
     <div class="page-body">
@@ -9,9 +9,10 @@
         <div class="split-main">
           <div class="page-scroll">
             <div class="card fade-in">
-              <div class="card-head">分析参数</div>
-              <div class="form-row" style="margin-bottom:14px;">
-                <el-form-item label="商品名称" style="flex:2;">
+              <div class="card-head">{{ analysisTab === 'seo' ? 'SEO审计参数' : analysisTab === 'competitor' ? '竞品分析参数' : '分析参数' }}</div>
+              <template v-if="analysisTab === 'market'">
+                <div class="form-row" style="margin-bottom:14px;">
+                  <el-form-item label="商品名称" style="flex:2;">
                   <el-input v-model="form.productName" placeholder="Cardboard Floor Display Stand" size="large"/>
                 </el-form-item>
                 <el-form-item label="目标市场" style="flex:1;">
@@ -35,9 +36,45 @@
                   <el-option label="Gift Box 礼品盒" value="gift_box"/>
                 </el-select>
               </el-form-item>
+              </template>
+
+              <template v-if="analysisTab === 'seo'">
+                <div class="form-row" style="margin-bottom:14px;">
+                  <el-form-item label="目标页面URL" style="flex:2;">
+                    <el-input v-model="form.url" placeholder="https://www.displaystandpop.com/products/..." size="large"/>
+                  </el-form-item>
+                  <el-form-item label="目标市场" style="flex:1;">
+                    <el-select v-model="form.targetCountry" size="large">
+                      <el-option label="美国" value="US"/><el-option label="日本" value="JP"/><el-option label="英国" value="UK"/><el-option label="德国" value="DE"/><el-option label="韩国" value="KR"/><el-option label="法国" value="FR"/><el-option label="澳大利亚" value="AU"/>
+                    </el-select>
+                  </el-form-item>
+                </div>
+                <el-form-item label="核心关键词（逗号分隔）" style="margin-bottom:14px;">
+                  <el-input v-model="form.keywords" placeholder="cardboard display stand, pop display, retail display..." size="large"/>
+                </el-form-item>
+              </template>
+
+              <template v-if="analysisTab === 'competitor'">
+                <div class="form-row" style="margin-bottom:14px;">
+                  <el-form-item label="竞品URL" style="flex:2;">
+                    <el-input v-model="form.competitorUrl" placeholder="https://competitor.com/products/..." size="large"/>
+                  </el-form-item>
+                  <el-form-item label="目标市场" style="flex:1;">
+                    <el-select v-model="form.targetCountry" size="large">
+                      <el-option label="美国" value="US"/><el-option label="日本" value="JP"/><el-option label="英国" value="UK"/><el-option label="德国" value="DE"/><el-option label="韩国" value="KR"/><el-option label="法国" value="FR"/><el-option label="澳大利亚" value="AU"/>
+                    </el-select>
+                  </el-form-item>
+                </div>
+                <el-form-item label="产品类别" style="margin-bottom:14px;">
+                  <el-select v-model="form.category" size="large" style="width:100%;">
+                    <el-option label="Floor Display Stand 落地展示架" value="floor_display"/><el-option label="Counter Display 柜台展架" value="counter_display"/><el-option label="PDQ Tray 快快消托盘" value="pdq_tray"/><el-option label="POP Dump Bin 散装箱" value="dump_bin"/><el-option label="Gift Box 礼品盒" value="gift_box"/>
+                  </el-select>
+                </el-form-item>
+              </template>
+
               <div style="display:flex;gap:12px;align-items:center;">
                 <el-button type="primary" @click="doAnalysis" :loading="analyzing" :icon="TrendCharts" size="large">
-                  {{ analyzing ? '分析中...' : '深度分析' }}
+                  {{ analyzing ? '分析中...' : analysisTab === 'seo' ? 'SEO审计' : analysisTab === 'competitor' ? '竞品分析' : '深度分析' }}'
                 </el-button>
                 <el-tag v-if="analyzing" type="warning" size="large">AI 分析中...</el-tag>
                 <el-tag v-if="currentSessionId" type="success" size="small" style="margin-left:auto;">
@@ -105,12 +142,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, TrendCharts, Refresh, Check, CopyDocument } from '@element-plus/icons-vue'
 import { analysisApi, agentApi } from '../api/index.js'
 
-const form = ref({ productName: '', targetCountry: 'US', category: 'floor_display' })
+const route = useRoute()
+const analysisTab = ref('market')
+
+watch(() => route.path, (path) => {
+  if (path.includes('/analysis/seo')) analysisTab.value = 'seo'
+  else if (path.includes('/analysis/competitor')) analysisTab.value = 'competitor'
+  else analysisTab.value = 'market'
+}, { immediate: true })
+
+const pageTitle = computed(() => {
+  const t = { seo: 'SEO审计与优化', competitor: '竞品分析', market: '市场分析' }
+  return t[analysisTab.value] || '市场分析'
+})
+const pageDesc = computed(() => {
+  const d = {
+    seo: '展示架产品SEO审计 - 关键词优化 - 排名提升建议',
+    competitor: '竞品对比分析 - 优劣势评估 - 差异化策略',
+    market: '展示架/POP 产品出口机会分析 - 竞争态势 - RAG 知识增强'
+  }
+  return d[analysisTab.value] || d.market
+})
+
+const form = ref({ productName: '', targetCountry: 'US', category: 'floor_display', keywords: '', url: '', competitorUrl: '' })
 const result = ref('')
 const analyzing = ref(false)
 const currentSessionId = ref(null)
@@ -179,15 +239,20 @@ async function confirmDelete(s) {
 }
 
 async function doAnalysis() {
-  if (!form.value.productName) { ElMessage.warning('请输入商品名称'); return }
   analyzing.value = true
   result.value = ''
   try {
-    const r = await analysisApi.analyzeMarket({
-      productName: form.value.productName,
-      targetCountry: form.value.targetCountry,
-      category: form.value.category
-    })
+    let r
+    if (analysisTab.value === 'seo') {
+      if (!form.value.url) { ElMessage.warning('请输入目标页面URL'); analyzing.value = false; return }
+      r = await analysisApi.analyzeSEO({ url: form.value.url, keywords: form.value.keywords, targetCountry: form.value.targetCountry })
+    } else if (analysisTab.value === 'competitor') {
+      if (!form.value.competitorUrl) { ElMessage.warning('请输入竞品URL'); analyzing.value = false; return }
+      r = await analysisApi.analyzeCompetitor({ competitorUrl: form.value.competitorUrl, targetCountry: form.value.targetCountry, category: form.value.category })
+    } else {
+      if (!form.value.productName) { ElMessage.warning('请输入商品名称'); analyzing.value = false; return }
+      r = await analysisApi.analyzeMarket({ productName: form.value.productName, targetCountry: form.value.targetCountry, category: form.value.category })
+    }
     result.value = r.data.result
     currentSessionId.value = r.data.sessionId
     resultInfo.value = { processingTimeMs: r.data.processingTimeMs }

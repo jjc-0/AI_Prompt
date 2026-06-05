@@ -95,14 +95,14 @@
         <!-- 消息渠道 -->
         <div class="nav-section">
           <div class="nav-section-title">通道</div>
-          <div class="nav-item">
+          <router-link to="/channels" class="nav-item" active-class="active">
             <el-icon :size="16" class="nav-icon"><Message /></el-icon>
             <span>消息渠道</span>
-          </div>
-          <div class="nav-item">
+          </router-link>
+          <router-link to="/api-integration" class="nav-item" active-class="active">
             <el-icon :size="16" class="nav-icon"><Link /></el-icon>
             <span>API 集成</span>
-          </div>
+          </router-link>
         </div>
       </nav>
 

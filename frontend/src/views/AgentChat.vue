@@ -424,7 +424,7 @@ function copyMsg(text) {
 .ds-msg-inner {
   display: flex;
   gap: 16px;
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 0;
 }
@@ -485,7 +485,7 @@ function copyMsg(text) {
   padding: 8px 14px;
   font-size: 12px;
   cursor: pointer;
-  max-width: 440px;
+  max-width: 600px;
   overflow: hidden;
   transition: all .15s;
 }
@@ -538,7 +538,7 @@ function copyMsg(text) {
 }
 
 .ds-input-box {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -624,7 +624,7 @@ function copyMsg(text) {
   font-size: 11px;
   color: #94a3b8;
   margin-top: 10px;
-  max-width: 800px;
+  max-width: 1100px;
   margin-left: auto;
   margin-right: auto;
 }

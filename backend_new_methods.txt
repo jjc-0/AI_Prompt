@@ -1,0 +1,51 @@
+﻿    @PostMapping("/seo")
+    public ResponseEntity<Map<String, Object>> analyzeSEO(@RequestBody Map<String, Object> body) {
+        String url = (String) body.getOrDefault("url", "");
+        String keywords = (String) body.getOrDefault("keywords", "");
+        String targetCountry = (String) body.getOrDefault("targetCountry", "US");
+        long start = System.currentTimeMillis();
+
+        String message = String.format("""
+            Perform an SEO audit for: URL=%s, Keywords=%s, Market=%s.
+            Cover on-page SEO, keyword optimization, content quality, technical issues, backlinks, and recommendations.
+            """, url, keywords, targetCountry);
+
+        AgentRequest request = AgentRequest.builder()
+            .message(message).taskType("analysis_seo")
+            .parameters(Map.of("targetCountry", targetCountry)).enableTools(true).build();
+
+        try {
+            AgentResponse response = agentDispatcher.dispatch(request);
+            return ResponseEntity.ok(Map.of("sessionId", response.getSessionId(), "result", response.getMessage(), "processingTimeMs", response.getProcessingTimeMs()));
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateSEODemo(url, keywords, targetCountry);
+            String sessionId = conversationManager.createSession("SEO Analysis", "analysis");
+            return ResponseEntity.ok(Map.of("sessionId", sessionId, "result", fallback, "processingTimeMs", System.currentTimeMillis() - start));
+        }
+    }
+
+    @PostMapping("/competitor")
+    public ResponseEntity<Map<String, Object>> analyzeCompetitor(@RequestBody Map<String, Object> body) {
+        String competitorUrl = (String) body.getOrDefault("competitorUrl", "");
+        String targetCountry = (String) body.getOrDefault("targetCountry", "US");
+        String category = (String) body.getOrDefault("category", "floor_display");
+        long start = System.currentTimeMillis();
+
+        String message = String.format("""
+            Analyze competitor: URL=%s, Market=%s, Category=%s.
+            Cover positioning, pricing, strengths, weaknesses, differentiation, and recommendations for JC Display.
+            """, competitorUrl, targetCountry, category);
+
+        AgentRequest request = AgentRequest.builder()
+            .message(message).taskType("analysis_competitor")
+            .parameters(Map.of("targetCountry", targetCountry)).enableTools(true).build();
+
+        try {
+            AgentResponse response = agentDispatcher.dispatch(request);
+            return ResponseEntity.ok(Map.of("sessionId", response.getSessionId(), "result", response.getMessage(), "processingTimeMs", response.getProcessingTimeMs()));
+        } catch (Exception e) {
+            String fallback = demoResponseService.generateCompetitorDemo(competitorUrl, targetCountry);
+            String sessionId = conversationManager.createSession("Competitor Analysis", "analysis");
+            return ResponseEntity.ok(Map.of("sessionId", sessionId, "result", fallback, "processingTimeMs", System.currentTimeMillis() - start));
+        }
+    }

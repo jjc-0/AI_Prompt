@@ -72,6 +72,18 @@ const routes = [
     meta: { title: 'API 集成' }
   },
   {
+    path: '/channels',
+    name: 'Channels',
+    component: () => import('../views/Channels.vue'),
+    meta: { title: '消息渠道' }
+  },
+  {
+    path: '/api-integration',
+    name: 'ApiIntegration',
+    component: () => import('../views/ApiIntegration.vue'),
+    meta: { title: 'API 集成' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard'
   }

@@ -46,12 +46,12 @@
         </div>
 
         <!-- 图表 -->
-        <div class="slide-up" style="display:flex;gap:14px;flex-shrink:0;">
-          <div class="chart-box" style="flex:2;">
+        <div class="slide-up" style="display:flex;gap:14px;min-height:320px;">
+          <div class="chart-box" style="flex:2;min-height:280px;">
             <div class="card-head">对话趋势 · 近7天</div>
             <div class="chart-body"><v-chart :option="lineOpt" autoresize /></div>
           </div>
-          <div class="chart-box" style="flex:1;">
+          <div class="chart-box" style="flex:1;min-height:280px;">
             <div class="card-head">功能使用分布</div>
             <div class="chart-body"><v-chart :option="pieOpt" autoresize /></div>
           </div>

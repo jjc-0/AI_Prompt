@@ -67,6 +67,12 @@ export const analysisApi = {
   }
 }
 
+export const deepseekApi = {
+  getUsage() {
+    return api.get('/deepseek/usage')
+  }
+}
+
 export const inquiryApi = {
   score(data) {
     return api.post('/inquiry/score', data)

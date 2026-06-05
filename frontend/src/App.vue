@@ -3,8 +3,16 @@
     <!-- Sidebar -->
     <aside class="app-sidebar">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">
-          <el-icon :size="20"><Cpu /></el-icon>
+        <div class="sidebar-logo-icon" style="background:linear-gradient(135deg,#6366f1,#818cf8);overflow:hidden;">
+          <svg viewBox="0 0 100 100" style="width:28px;height:28px;">
+            <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity="0.95"/><stop offset="100%" stop-color="#e0e7ff" stop-opacity="0.9"/></linearGradient></defs>
+            <rect x="18" y="72" width="64" height="8" rx="2" fill="url(#lg)"/>
+            <rect x="30" y="22" width="40" height="52" rx="3" fill="url(#lg)" opacity=".35"/>
+            <rect x="22" y="44" width="56" height="5" rx="1.5" fill="url(#lg)" opacity=".75"/>
+            <rect x="24" y="28" width="52" height="5" rx="1.5" fill="url(#lg)" opacity=".75"/>
+            <rect x="26" y="40" width="48" height="34" rx="3" fill="url(#lg)" opacity=".55"/>
+            <text x="50" y="64" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="18" fill="#6366f1">JC</text>
+          </svg>
         </div>
         <div>
           <div class="sidebar-logo-text">JC Display AI</div>
@@ -109,9 +117,7 @@
       <!-- 团队 -->
       <div class="sidebar-footer">
         <div class="sidebar-footer-avatars">
-          <div class="sidebar-footer-avatar">JD</div>
-          <div class="sidebar-footer-avatar" style="background:#e0f2fe;color:#0284c7;">JK</div>
-          <div class="sidebar-footer-avatar" style="background:#fef3c7;color:#d97706;">AL</div>
+          <div class="sidebar-footer-avatar">JC</div>
         </div>
         <div class="sidebar-footer-text">JC Display · 杰创展示</div>
       </div>

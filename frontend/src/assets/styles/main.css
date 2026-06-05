@@ -742,7 +742,7 @@ body {
 .chart-box {
   background: var(--bg-surface); border-radius: var(--radius);
   border: 1px solid var(--border); padding: 18px;
-  flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+  flex:1; min-height:280px; display:flex; flex-direction:column; overflow:hidden;
 }
 .chart-box .chart-body { flex:1; min-height:0; }
 

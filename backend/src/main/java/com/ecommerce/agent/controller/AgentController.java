@@ -227,6 +227,40 @@ public class AgentController {
     }
 
     /**
+     * 查询 MySQL 中的产品列表（分页）
+     */
+    @GetMapping("/knowledge/products")
+    public ResponseEntity<Map<String, Object>> listProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        var pageResult = productRepo.findAll(
+                org.springframework.data.domain.PageRequest.of(page, size,
+                        org.springframework.data.domain.Sort.by("createdAt").descending()));
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (com.ecommerce.agent.model.Product p : pageResult.getContent()) {
+            items.add(Map.of(
+                "id", p.getId(),
+                "name", p.getName(),
+                "url", p.getUrl() != null ? p.getUrl() : "",
+                "imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "",
+                "price", p.getPrice() != null ? p.getPrice() : "",
+                "sku", p.getSku() != null ? p.getSku() : "",
+                "description", p.getDescription() != null
+                        ? p.getDescription().substring(0, Math.min(300, p.getDescription().length())) : "",
+                "category", p.getCategory() != null ? p.getCategory() : "",
+                "createdAt", p.getCreatedAt() != null ? p.getCreatedAt().toString() : ""
+            ));
+        }
+        return ResponseEntity.ok(Map.of(
+            "total", pageResult.getTotalElements(),
+            "page", page,
+            "size", size,
+            "totalPages", pageResult.getTotalPages(),
+            "items", items
+        ));
+    }
+
+    /**
      * 重新加载知识库（从 MySQL 重新构建向量索引）
      */
     @PostMapping("/knowledge/reload")

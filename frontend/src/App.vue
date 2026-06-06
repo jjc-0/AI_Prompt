@@ -59,6 +59,11 @@
             <span>AI 智能识图</span>
             <span class="nav-badge">Vision</span>
           </router-link>
+          <router-link to="/knowledge-base" class="nav-item" active-class="active">
+            <el-icon :size="16" class="nav-icon"><Collection /></el-icon>
+            <span>RAG 知识库</span>
+            <span class="nav-badge">DB</span>
+          </router-link>
         </div>
 
         <!-- 插件 -->
@@ -145,7 +150,7 @@
 import { ref } from 'vue'
 import {
   Cpu, HomeFilled, ChatDotRound, EditPen, Connection, TrendCharts,
-  Document, DataAnalysis, Setting, Clock, Message, Link, ArrowRight, Picture
+  Document, DataAnalysis, Setting, Clock, Message, Link, ArrowRight, Picture, Collection
 } from '@element-plus/icons-vue'
 
 const menuPlugins = ref(false)

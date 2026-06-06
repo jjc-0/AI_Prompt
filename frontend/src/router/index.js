@@ -66,6 +66,12 @@ const routes = [
     meta: { title: 'AI 智能识图' }
   },
   {
+    path: '/knowledge-base',
+    name: 'KnowledgeBase',
+    component: () => import('../views/KnowledgeBase.vue'),
+    meta: { title: 'RAG 知识库' }
+  },
+  {
     path: '/channels',
     name: 'Channels',
     component: () => import('../views/Channels.vue'),

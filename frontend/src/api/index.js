@@ -104,6 +104,15 @@ export const agentApi = {
   knowledgeStatus() {
     return api.get('/agent/knowledge/status')
   },
+  getDocuments() {
+    return api.get('/agent/knowledge/documents')
+  },
+  getProducts(page = 0, size = 20) {
+    return api.get('/agent/knowledge/products', { params: { page, size } })
+  },
+  reloadKnowledge() {
+    return api.post('/agent/knowledge/reload')
+  },
   getHistory(sessionId) {
     return api.get(`/agent/session/${sessionId}/history`)
   },

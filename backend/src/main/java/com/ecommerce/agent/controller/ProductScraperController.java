@@ -57,18 +57,22 @@ public class ProductScraperController {
      */
     @PostMapping("/run")
     public ResponseEntity<Map<String, Object>> runScraper() {
-        log.info("触发全量产品爬取...");
-        ScrapeResult result = productScraper.scrapeAll();
+        log.info("触发全量产品爬取（异步）...");
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("totalProducts", result.getTotalProducts());
-        response.put("categoriesFound", result.getCategoriesFound());
-        response.put("durationMs", result.getDurationMs());
-        response.put("message", result.getMessage());
-        response.put("productNames", result.getProductNames());
-        response.put("debugInfo", result.getDebugInfo());
-        return ResponseEntity.ok(response);
+        // 异步执行，避免 HTTP 超时中断
+        new Thread(() -> {
+            try {
+                ScrapeResult result = productScraper.scrapeAll();
+                log.info("全量爬取完成: {} 个产品", result.getTotalProducts());
+            } catch (Exception e) {
+                log.error("全量爬取异常", e);
+            }
+        }).start();
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "爬取已启动（异步），请通过 GET /api/scraper/status 查看进度"
+        ));
     }
 
     /**

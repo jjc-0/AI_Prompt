@@ -140,6 +140,7 @@ public class ProductScraper {
             ".product-image img", ".img-box img",           // Alibaba ICBU
             ".product-img img", ".thumbnail img", ".image img",
             "img[src$=.jpg]", "img[src$=.png]",
+            ".pic-box img", "img.lazy-load",
     };
 
     // 产品详情页字段选择器
@@ -163,10 +164,15 @@ public class ProductScraper {
             ".ma-price", ".module_productDetail_price",    // Alibaba
     };
     private static final String[] PRODUCT_IMAGE_SELECTORS = {
+            "meta[property='og:image']",                        // Open Graph（Alibaba 必有）
             ".product-image img", ".thumbnail img", "[itemprop='image']",
             ".image img", ".main-image img", ".product-img img",
             ".detail-img img", ".pic img",
-            ".main-image-view img", ".ma-img img",         // Alibaba
+            ".main-image-view img", ".ma-img img",              // Alibaba
+            ".module_productDetail_image img",                   // Alibaba
+            "#J_ImgBooth",                                      // Alibaba 主图
+            ".MagicZoom img", ".big-image img",                 // 通用
+            "img.mainPic", "img#mainImg",
     };
     private static final String[] PRODUCT_SKU_SELECTORS = {
             ".product-model", ".model", "[itemprop='sku']",
@@ -368,7 +374,10 @@ public class ProductScraper {
                             for (ScrapedProduct p : cardProducts) {
                                 if (products.size() >= MAX_PRODUCTS) break;
                                 products.add(p);
+                                saveOneToMySql(p);  // 实时写入 MySQL
                             }
+                            scrapeProgress = products.size();
+                            scrapeStatus = "scraping " + scrapeProgress + " products";
                             debugLog.add("从列表页提取 " + cardProducts.size() + " 个产品");
                             log.info("从列表页 {} 提取 {} 个产品", listUrl, cardProducts.size());
                         }
@@ -596,7 +605,30 @@ public class ProductScraper {
                             sp.getName() != null ? sp.getName().substring(0, Math.min(sp.getName().length(), 200)) : "",
                             sp.getSku() != null ? sp.getSku() : "___none___");
             if (existing != null && !existing.isEmpty()) {
-                log.debug("产品已存在，跳过: {}", sp.getName());
+                com.ecommerce.agent.model.Product existingProduct = existing.get(0);
+                // 如果已有产品缺少图片/描述等，补全
+                boolean updated = false;
+                if ((existingProduct.getImageUrl() == null || existingProduct.getImageUrl().isBlank())
+                        && sp.getImageUrl() != null && !sp.getImageUrl().isBlank()) {
+                    existingProduct.setImageUrl(sp.getImageUrl());
+                    updated = true;
+                }
+                if ((existingProduct.getDescription() == null || existingProduct.getDescription().isBlank())
+                        && sp.getDescription() != null && !sp.getDescription().isBlank()) {
+                    existingProduct.setDescription(sp.getDescription());
+                    updated = true;
+                }
+                if ((existingProduct.getPrice() == null || existingProduct.getPrice().isBlank())
+                        && sp.getPrice() != null && !sp.getPrice().isBlank()) {
+                    existingProduct.setPrice(sp.getPrice());
+                    updated = true;
+                }
+                if (updated) {
+                    productRepo.save(existingProduct);
+                    log.debug("产品已更新（补全字段）: {}", sp.getName());
+                } else {
+                    log.debug("产品已存在，跳过: {}", sp.getName());
+                }
                 return;
             }
             productRepo.save(com.ecommerce.agent.model.Product.builder()
@@ -771,6 +803,9 @@ public class ProductScraper {
                     if (img != null) {
                         imageUrl = img.absUrl("src");
                         if (imageUrl.isBlank()) imageUrl = img.absUrl("data-src");
+                        if (imageUrl.isBlank()) imageUrl = img.absUrl("srcset");
+                        if (imageUrl.isBlank()) imageUrl = img.attr("data-ks-lazyload");
+                        if (imageUrl.isBlank()) imageUrl = img.attr("data-original");
                         if (!imageUrl.isBlank()) break;
                     }
                 }
@@ -1045,17 +1080,34 @@ public class ProductScraper {
 
     private String extractImageUrl(org.jsoup.nodes.Document doc) {
         for (String selector : PRODUCT_IMAGE_SELECTORS) {
+            if (selector.startsWith("meta[")) {
+                // Open Graph meta tag
+                Element meta = doc.selectFirst(selector);
+                if (meta != null) {
+                    String content = meta.attr("content");
+                    if (!content.isBlank()) return content;
+                }
+                continue;
+            }
             Element img = doc.selectFirst(selector);
             if (img != null) {
                 String src = img.absUrl("src");
                 if (src.isBlank()) src = img.absUrl("data-src");
+                if (src.isBlank()) src = img.absUrl("srcset");
+                if (src.isBlank()) src = img.attr("data-ks-lazyload");
+                if (src.isBlank()) src = img.attr("data-original");
                 if (!src.isBlank()) return src;
             }
         }
-        Elements imgs = doc.select("img[src$=.jpg], img[src$=.png], img[src$=.webp]");
+        // 兜底：找第一个尺寸 >= 200 的大图
+        Elements imgs = doc.select("img[src$=.jpg], img[src$=.png], img[src$=.webp], img[src$=.jpeg]");
         for (Element img : imgs) {
             String src = img.absUrl("src");
             if (src.isBlank()) src = img.absUrl("data-src");
+            if (src.isBlank()) src = img.absUrl("srcset");
+            if (src.isBlank()) src = img.attr("data-ks-lazyload");
+            if (src.isBlank()) src = img.attr("data-original");
+            if (src.isBlank()) continue;
             int w = 0;
             try { w = Integer.parseInt(img.attr("width")); } catch (NumberFormatException ignored) {}
             if (w >= 200 || (w == 0 && !src.isBlank())) return src;

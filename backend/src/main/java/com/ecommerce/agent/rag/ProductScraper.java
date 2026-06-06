@@ -53,8 +53,8 @@ public class ProductScraper {
     private static final int MAX_PAGES = 50; // 最大翻页数
     private static final int MAX_PRODUCTS = 2000;
 
-    // 文件保存的基础目录（相对于 backend 模块）
-    private static final String SAVE_DIR = "backend/src/main/resources/knowledge/products";
+    // 文件保存的基础目录
+    private static final String SAVE_DIR = "src/main/resources/knowledge/products";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Set<String> visitedUrls = ConcurrentHashMap.newKeySet();
@@ -244,6 +244,51 @@ public class ProductScraper {
     }
 
     /**
+     * 快速分页：直接构造 &page=N URL，不进行慢速模式测试（适用于 Alibaba 等）
+     */
+    private Set<String> quickPagination(String baseUrl, org.jsoup.nodes.Document firstDoc) {
+        Set<String> urls = new LinkedHashSet<>();
+
+        // 从页面提取总产品数来估算页数
+        int estimatedPages = 50; // 默认
+        try {
+            String bodyText = firstDoc.body().text();
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile("of\\s+([\\d,]+)\\s+results", java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Matcher m = p.matcher(bodyText);
+            if (m.find()) {
+                int total = Integer.parseInt(m.group(1).replace(",", ""));
+                // 每页约 20 个产品
+                estimatedPages = (int) Math.ceil(total / 20.0);
+                log.info("快速分页: 总共约 {} 个产品, 估算 {} 页", total, estimatedPages);
+            }
+        } catch (Exception e) {
+            log.debug("无法从页面提取总产品数, 使用默认分页数");
+        }
+
+        // 检测第一页的产品卡片数以确定每页数量
+        int cardsOnFirstPage = 20;
+        for (String sel : PRODUCT_CARD_SELECTORS) {
+            int size = firstDoc.select(sel).size();
+            if (size >= 1) {
+                cardsOnFirstPage = Math.max(cardsOnFirstPage, size);
+            }
+        }
+        if (cardsOnFirstPage > 20) estimatedPages = Math.max(estimatedPages, cardsOnFirstPage);
+
+        // 限制最大页数
+        estimatedPages = Math.min(estimatedPages, 100);
+
+        // 直接用 &page=N 构造（Alibaba 标准格式）
+        String clean = baseUrl.replaceAll("[&?]page=\\d+", "");
+        for (int p = 2; p <= estimatedPages; p++) {
+            urls.add(clean + "&page=" + p);
+        }
+
+        log.info("快速分页: 生成 {} 个分页 URL ({} 页)", urls.size(), estimatedPages);
+        return urls;
+    }
+
+    /**
      * 执行全量爬取
      */
     public ScrapeResult scrapeAll() {
@@ -339,6 +384,9 @@ public class ProductScraper {
                                 ScrapedProduct product = scrapeProductPage(detailUrl);
                                 if (product != null && !isDuplicate(product)) {
                                     products.add(product);
+                                    saveOneToMySql(product);  // 实时写入 MySQL
+                                    scrapeProgress = products.size();
+                                    scrapeStatus = "scraping " + scrapeProgress + " products";
                                     log.info("[{}/{}] 详情页抓取: {}", products.size(), MAX_PRODUCTS, product.getName());
                                 }
                             } catch (Exception e) {
@@ -365,7 +413,10 @@ public class ProductScraper {
                                 for (ScrapedProduct p : pagedProducts) {
                                     if (products.size() >= MAX_PRODUCTS) break;
                                     products.add(p);
+                                    saveOneToMySql(p);  // 实时写入 MySQL
                                 }
+                                scrapeProgress = products.size();
+                                scrapeStatus = "scraping " + scrapeProgress + " products";
                             } catch (Exception e) {
                                 log.warn("分页爬取失败: {} - {}", pageUrl, e.getMessage());
                             }
@@ -375,6 +426,9 @@ public class ProductScraper {
                         ScrapedProduct product = scrapeProductPage(listUrl);
                         if (product != null && !isDuplicate(product)) {
                             products.add(product);
+                            saveOneToMySql(product);
+                            scrapeProgress = products.size();
+                            scrapeStatus = "scraping " + scrapeProgress + " products";
                         }
                     }
                 } catch (Exception e) {
@@ -390,6 +444,9 @@ public class ProductScraper {
                     ScrapedProduct product = scrapeProductPage(url);
                     if (product != null && !isDuplicate(product)) {
                         products.add(product);
+                        saveOneToMySql(product);
+                        scrapeProgress = products.size();
+                        scrapeStatus = "scraping " + scrapeProgress + " products";
                     }
                 } catch (Exception e) {
                     log.warn("产品页抓取失败: {} - {}", url, e.getMessage());
@@ -416,6 +473,150 @@ public class ProductScraper {
             return failResult(start, "爬取出错: " + e.getMessage());
         }
     }
+
+    // 进度追踪
+    private volatile int scrapeProgress = 0;
+    private volatile int scrapeTotal = 0;
+    private volatile String scrapeStatus = "idle";
+
+    /**
+     * 从指定产品列表 URL 爬取所有产品（支持分页，逐条实时写入 MySQL，防丢失）
+     */
+    public ScrapeResult scrapeProductListUrl(String listUrl) {
+        long start = System.currentTimeMillis();
+        scrapeProgress = 0;
+        scrapeTotal = 0;
+        scrapeStatus = "starting";
+        int savedCount = 0;
+        List<String> debugLog = Collections.synchronizedList(new ArrayList<>());
+
+        log.info("开始从列表页爬取: {}", listUrl);
+
+        try {
+            // Step 1: 发现所有分页 URL
+            scrapeStatus = "discovering pages";
+            org.jsoup.nodes.Document firstDoc = fetchPage(listUrl);
+            if (firstDoc == null) {
+                return failResult(start, "无法访问列表页: " + listUrl);
+            }
+            Set<String> pagination = discoverPaginationUrls(firstDoc, listUrl);
+            if (pagination.isEmpty()) {
+                // 兜底：快速构造分页 URL（跳过慢速模式测试）
+                pagination = quickPagination(listUrl, firstDoc);
+            }
+
+            List<String> listPages = new ArrayList<>();
+            listPages.add(listUrl);
+            listPages.addAll(pagination);
+            debugLog.add("发现 " + listPages.size() + " 个列表分页");
+            log.info("发现 {} 个列表分页", listPages.size());
+
+            // Step 2: 从所有列表页提取产品 URL
+            scrapeStatus = "collecting product URLs";
+            LinkedHashSet<String> allProductUrls = new LinkedHashSet<>();
+            for (int pi = 0; pi < listPages.size(); pi++) {
+                String pageUrl = listPages.get(pi);
+                if (pi > 0) Thread.sleep(REQUEST_DELAY_MS);
+                org.jsoup.nodes.Document doc = (pi == 0) ? firstDoc : fetchPage(pageUrl);
+                if (doc == null) continue;
+
+                Set<String> urls = discoverProductUrls(doc);
+                List<ScrapedProduct> cardProducts = extractProductsFromListPage(doc, pageUrl);
+                for (ScrapedProduct p : cardProducts) {
+                    if (p.getUrl() != null && !p.getUrl().isBlank() && !p.getUrl().equals(pageUrl)) {
+                        urls.add(p.getUrl());
+                    }
+                }
+                allProductUrls.addAll(urls);
+                log.info("分页 [{}/{}]: {} 个产品链接", pi + 1, listPages.size(), urls.size());
+            }
+
+            debugLog.add("共发现 " + allProductUrls.size() + " 个不重复产品链接");
+            log.info("共发现 {} 个不重复产品链接", allProductUrls.size());
+
+            if (allProductUrls.isEmpty()) {
+                scrapeStatus = "done (no products found)";
+                return failResult(start, "未在任何列表页中找到产品详情链接");
+            }
+
+            // Step 3: 逐个抓取产品详情并立即写入 MySQL
+            scrapeTotal = allProductUrls.size();
+            scrapeStatus = "scraping 0/" + scrapeTotal;
+            List<String> urlList = new ArrayList<>(allProductUrls);
+            int index = 0;
+            for (String url : urlList) {
+                index++;
+                scrapeProgress = index;
+                scrapeStatus = "scraping " + index + "/" + scrapeTotal;
+                try {
+                    if (index > 1) Thread.sleep(REQUEST_DELAY_MS);
+                    ScrapedProduct product = scrapeProductPage(url);
+                    if (product != null) {
+                        saveOneToMySql(product);
+                        savedCount++;
+                        log.info("[{}/{}] 已保存: {}",
+                                index, scrapeTotal,
+                                product.getName().substring(0, Math.min(60, product.getName().length())));
+                    }
+                } catch (Exception e) {
+                    log.warn("[{}/{}] 失败: {} - {}", index, scrapeTotal, url, e.getMessage());
+                }
+            }
+
+            // 保存到 JSON 备份
+            saveProductsToFile();
+
+            scrapeStatus = "done";
+            long duration = System.currentTimeMillis() - start;
+            log.info("列表页爬取完成: {} 个产品链接, 保存 {} 条, 耗时 {}ms", scrapeTotal, savedCount, duration);
+
+            return ScrapeResult.builder()
+                    .totalProducts(savedCount)
+                    .categoriesFound(listPages.size())
+                    .durationMs(duration)
+                    .productNames(List.of())
+                    .debugInfo(String.join("\n", debugLog))
+                    .message("从 " + listUrl + " 抓取完成，共 " + savedCount + "/" + scrapeTotal + " 个产品已保存到 MySQL")
+                    .build();
+
+        } catch (Exception e) {
+            scrapeStatus = "error: " + e.getMessage();
+            log.error("列表页爬取异常", e);
+            return failResult(start, "爬取出错: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 逐条写入 MySQL（实时持久化）
+     */
+    private void saveOneToMySql(ScrapedProduct sp) {
+        try {
+            List<com.ecommerce.agent.model.Product> existing = productRepo
+                    .findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(
+                            sp.getName() != null ? sp.getName().substring(0, Math.min(sp.getName().length(), 200)) : "",
+                            sp.getSku() != null ? sp.getSku() : "___none___");
+            if (existing != null && !existing.isEmpty()) {
+                log.debug("产品已存在，跳过: {}", sp.getName());
+                return;
+            }
+            productRepo.save(com.ecommerce.agent.model.Product.builder()
+                    .name(sp.getName())
+                    .url(sp.getUrl())
+                    .imageUrl(sp.getImageUrl())
+                    .price(sp.getPrice())
+                    .sku(sp.getSku())
+                    .description(sp.getDescription())
+                    .category(sp.getCategory())
+                    .enabled(true)
+                    .build());
+        } catch (Exception e) {
+            log.warn("保存产品到 MySQL 失败: {} - {}", sp.getName(), e.getMessage());
+        }
+    }
+
+    public int getScrapeProgress() { return scrapeProgress; }
+    public int getScrapeTotal() { return scrapeTotal; }
+    public String getScrapeStatus() { return scrapeStatus; }
 
     /**
      * 爬取单个产品详情页
@@ -957,6 +1158,28 @@ public class ProductScraper {
     public List<ScrapedProduct> getCachedProducts() {
         if (!products.isEmpty()) return new ArrayList<>(products);
 
+        // 优先从 MySQL 加载
+        try {
+            List<com.ecommerce.agent.model.Product> dbProducts = productRepo.findByEnabledTrueOrderByNameAsc();
+            if (!dbProducts.isEmpty()) {
+                for (com.ecommerce.agent.model.Product dbp : dbProducts) {
+                    products.add(ScrapedProduct.builder()
+                            .name(dbp.getName())
+                            .url(dbp.getUrl())
+                            .imageUrl(dbp.getImageUrl())
+                            .price(dbp.getPrice())
+                            .sku(dbp.getSku())
+                            .description(dbp.getDescription())
+                            .category(dbp.getCategory())
+                            .build());
+                }
+                return new ArrayList<>(products);
+            }
+        } catch (Exception e) {
+            log.warn("从 MySQL 加载产品失败，尝试文件缓存: {}", e.getMessage());
+        }
+
+        // 回退到 JSON 文件缓存
         try {
             Path path = Paths.get(SAVE_DIR, "products.json");
             if (Files.exists(path)) {

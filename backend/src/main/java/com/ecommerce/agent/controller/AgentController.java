@@ -4,10 +4,11 @@ import com.ecommerce.agent.agent.AgentDispatcher;
 import com.ecommerce.agent.agent.ConversationManager;
 import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.*;
-import com.ecommerce.agent.rag.KnowledgeDocuments;
+import com.ecommerce.agent.rag.KnowledgeBaseLoader;
 import com.ecommerce.agent.rag.RAGService;
+import com.ecommerce.agent.repository.KnowledgeDocumentRepository;
+import com.ecommerce.agent.repository.ProductRepository;
 import com.ecommerce.agent.service.DemoResponseService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/api/agent")
-@RequiredArgsConstructor
 public class AgentController {
 
     private final AgentDispatcher agentDispatcher;
@@ -27,6 +27,27 @@ public class AgentController {
     private final PromptTemplateManager promptTemplateManager;
     private final DemoResponseService demoResponseService;
     private final RAGService ragService;
+    private final KnowledgeDocumentRepository knowledgeDocRepo;
+    private final ProductRepository productRepo;
+    private final KnowledgeBaseLoader knowledgeBaseLoader;
+
+    public AgentController(AgentDispatcher agentDispatcher,
+                           ConversationManager conversationManager,
+                           PromptTemplateManager promptTemplateManager,
+                           DemoResponseService demoResponseService,
+                           RAGService ragService,
+                           KnowledgeDocumentRepository knowledgeDocRepo,
+                           ProductRepository productRepo,
+                           KnowledgeBaseLoader knowledgeBaseLoader) {
+        this.agentDispatcher = agentDispatcher;
+        this.conversationManager = conversationManager;
+        this.promptTemplateManager = promptTemplateManager;
+        this.demoResponseService = demoResponseService;
+        this.ragService = ragService;
+        this.knowledgeDocRepo = knowledgeDocRepo;
+        this.productRepo = productRepo;
+        this.knowledgeBaseLoader = knowledgeBaseLoader;
+    }
 
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, Object> body) {
@@ -166,43 +187,54 @@ public class AgentController {
     @GetMapping("/knowledge/status")
     public ResponseEntity<Map<String, Object>> knowledgeStatus() {
         boolean available = ragService.isAvailable();
+        long docCount = knowledgeDocRepo.count();
+        long productCount = productRepo.count();
         return ResponseEntity.ok(Map.of(
             "enabled", available,
-            "documentCount", 10,
-            "storeType", "InMemoryEmbeddingStore（内存存储，重启后清空）",
-            "sourceFile", "KnowledgeDocuments.java — 10篇硬编码文档",
-            "topics", List.of("公司信息", "产品规格", "市场分析", "物流运输", "行业展会", "行业术语", "B2B平台优化", "询盘邮件模板", "合规认证", "本地化指南")
+            "storeType", "MySQL（持久化存储）",
+            "knowledgeDocumentCount", docCount,
+            "productCount", productCount,
+            "dataSource", "MySQL → knowledge_documents + products 表",
+            "topics", knowledgeDocRepo.findByEnabledTrueOrderByTitleAsc()
+                    .stream().map(KnowledgeDocument::getTitle).collect(Collectors.toList())
         ));
     }
 
     /**
-     * 查看所有 RAG 知识库中的原始文档内容
+     * 查看所有 RAG 知识库文档内容（从 MySQL）
      */
     @GetMapping("/knowledge/documents")
     public ResponseEntity<Map<String, Object>> listDocuments() {
-        List<Map<String, Object>> docs = new ArrayList<>();
-        var allDocs = KnowledgeDocuments.getAllDocuments();
-        for (int i = 0; i < allDocs.size(); i++) {
-            var doc = allDocs.get(i);
-            String title = extractTitle(doc.text());
-            docs.add(Map.of(
-                "index", i + 1,
-                "title", title,
-                "content", doc.text(),
-                "length", doc.text().length()
+        List<KnowledgeDocument> docs = knowledgeDocRepo.findByEnabledTrueOrderByTitleAsc();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (KnowledgeDocument kd : docs) {
+            result.add(Map.of(
+                "id", kd.getId(),
+                "title", kd.getTitle(),
+                "category", kd.getCategory() != null ? kd.getCategory() : "",
+                "content", kd.getContent(),
+                "length", kd.getContent().length(),
+                "enabled", kd.isEnabled(),
+                "createdAt", kd.getCreatedAt() != null ? kd.getCreatedAt().toString() : "",
+                "updatedAt", kd.getUpdatedAt() != null ? kd.getUpdatedAt().toString() : ""
             ));
         }
         return ResponseEntity.ok(Map.of(
-            "total", docs.size(),
-            "documents", docs
+            "total", result.size(),
+            "source", "MySQL",
+            "documents", result
         ));
     }
 
-    private String extractTitle(String text) {
-        if (text == null || text.isBlank()) return "Untitled";
-        String trimmed = text.trim();
-        int newline = trimmed.indexOf('\n');
-        String firstLine = newline > 0 ? trimmed.substring(0, newline) : trimmed.substring(0, Math.min(80, trimmed.length()));
-        return firstLine.replaceAll("^#+\\s*", "").trim();
+    /**
+     * 重新加载知识库（从 MySQL 重新构建向量索引）
+     */
+    @PostMapping("/knowledge/reload")
+    public ResponseEntity<Map<String, Object>> reloadKnowledge() {
+        knowledgeBaseLoader.forceReload();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "已从 MySQL 重新加载知识库到向量存储"
+        ));
     }
 }

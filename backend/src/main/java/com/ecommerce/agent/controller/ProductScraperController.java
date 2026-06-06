@@ -25,6 +25,34 @@ public class ProductScraperController {
     private final KnowledgeBaseLoader knowledgeBaseLoader;
 
     /**
+     * 从指定产品列表 URL 逐条爬取并实时写入 MySQL（防丢失）
+     */
+    @PostMapping("/list")
+    public ResponseEntity<Map<String, Object>> scrapeList(@RequestBody Map<String, String> body) {
+        String url = body.getOrDefault("url", "http://www.displaystandpop.com/productlist.html");
+        if (url.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "url 不能为空"));
+        }
+        log.info("从列表页开始爬取: {}", url);
+
+        // 异步执行
+        new Thread(() -> {
+            try {
+                productScraper.scrapeProductListUrl(url);
+            } catch (Exception e) {
+                log.error("列表页爬取失败", e);
+            }
+        }).start();
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "爬取已启动，请通过 GET /api/scraper/status 查看进度",
+                "url", url
+        ));
+    }
+
+    /**
      * 触发全量产品爬取
      */
     @PostMapping("/run")
@@ -203,8 +231,11 @@ public class ProductScraperController {
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("productsCached", products.size());
-        response.put("lastUpdated", products.isEmpty() ? null
+        response.put("lastUpdated", products.isEmpty() || products.get(products.size() - 1).getScrapedAt() == null ? "N/A"
                 : products.get(products.size() - 1).getScrapedAt().toString());
+        response.put("progress", productScraper.getScrapeProgress());
+        response.put("total", productScraper.getScrapeTotal());
+        response.put("status", productScraper.getScrapeStatus());
         return ResponseEntity.ok(response);
     }
 }

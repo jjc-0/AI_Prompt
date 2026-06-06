@@ -1,6 +1,8 @@
 package com.ecommerce.agent.llm;
 
 import com.ecommerce.agent.model.PromptTemplate;
+import com.ecommerce.agent.model.PromptTemplateEntity;
+import com.ecommerce.agent.repository.PromptTemplateRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -19,16 +21,66 @@ public class PromptTemplateManager {
 
     private final Map<String, PromptTemplate> templates = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
+    private final PromptTemplateRepository promptTemplateRepo;
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
 
-    public PromptTemplateManager() {
+    public PromptTemplateManager(PromptTemplateRepository promptTemplateRepo) {
         this.objectMapper = new ObjectMapper();
+        this.promptTemplateRepo = promptTemplateRepo;
     }
 
     @PostConstruct
     public void init() {
-        loadBuiltinTemplates();
+        seedDefaultTemplates();
+        loadFromMySql();
         log.info("Prompt模板管理器初始化完成，已加载 {} 个模板", templates.size());
+    }
+
+    /**
+     * 首次启动时从硬编码模板写入 MySQL
+     */
+    private void seedDefaultTemplates() {
+        if (promptTemplateRepo.count() > 0) {
+            log.info("Prompt 模板已存在于 MySQL，跳过初始化");
+            return;
+        }
+        log.info("首次启动，初始化 Prompt 模板到 MySQL...");
+        loadBuiltinTemplates();
+        for (PromptTemplate pt : templates.values()) {
+            promptTemplateRepo.save(PromptTemplateEntity.builder()
+                    .templateUid(pt.getId())
+                    .name(pt.getName())
+                    .description(pt.getDescription())
+                    .category(pt.getCategory())
+                    .template(pt.getTemplate())
+                    .variables(pt.getVariables() != null ? String.join(",", pt.getVariables()) : "")
+                    .targetPlatform(pt.getTargetPlatform())
+                    .enabled(pt.isActive())
+                    .build());
+        }
+        log.info("已写入 {} 个 Prompt 模板到 MySQL", templates.size());
+    }
+
+    /**
+     * 从 MySQL 加载模板到内存 map
+     */
+    private void loadFromMySql() {
+        templates.clear();
+        List<PromptTemplateEntity> entities = promptTemplateRepo.findAll();
+        for (PromptTemplateEntity e : entities) {
+            templates.put(e.getTemplateUid(), PromptTemplate.builder()
+                    .id(e.getTemplateUid())
+                    .name(e.getName())
+                    .description(e.getDescription())
+                    .category(e.getCategory())
+                    .template(e.getTemplate())
+                    .variables(e.getVariables() != null && !e.getVariables().isBlank()
+                            ? Arrays.asList(e.getVariables().split(","))
+                            : List.of())
+                    .targetPlatform(e.getTargetPlatform())
+                    .active(e.isEnabled())
+                    .build());
+        }
     }
 
     private void loadBuiltinTemplates() {

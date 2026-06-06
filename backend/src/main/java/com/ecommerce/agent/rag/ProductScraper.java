@@ -51,7 +51,7 @@ public class ProductScraper {
     private static final int REQUEST_DELAY_MS = 1500;
     private static final int TIMEOUT_MS = 15000;
     private static final int MAX_PAGES = 50; // 最大翻页数
-    private static final int MAX_PRODUCTS = 2000;
+    private static final int MAX_PRODUCTS = 10000;
 
     // 文件保存的基础目录
     private static final String SAVE_DIR = "src/main/resources/knowledge/products";
@@ -284,10 +284,11 @@ public class ProductScraper {
         // 限制最大页数
         estimatedPages = Math.min(estimatedPages, 100);
 
-        // 直接用 &page=N 构造（Alibaba 标准格式）
-        String clean = baseUrl.replaceAll("[&?]page=\\d+", "");
+        // 智能选择 ?page= 或 &page=（根据 URL 是否已有查询参数）
+        String clean = baseUrl.replaceAll("[?&]page=\\d+", "");
+        String connector = clean.contains("?") ? "&" : "?";
         for (int p = 2; p <= estimatedPages; p++) {
-            urls.add(clean + "&page=" + p);
+            urls.add(clean + connector + "page=" + p);
         }
 
         log.info("快速分页: 生成 {} 个分页 URL ({} 页)", urls.size(), estimatedPages);
@@ -403,12 +404,11 @@ public class ProductScraper {
                             }
                         }
 
-                        // 处理分页
+                        // 处理分页（快速模式：直接构造 &page=N，跳过慢速模式测试）
                         Set<String> paginationUrls = discoverPaginationUrls(doc, listUrl);
-
-                        // 如果没找到分页链接，尝试构造 URL（Alibaba JS 分页）
                         if (paginationUrls.isEmpty()) {
-                            paginationUrls = constructPaginationUrls(listUrl, 9);
+                            // 快速构造：不测试，直接生成 URL
+                            paginationUrls = quickPagination(listUrl, doc);
                         }
 
                         for (String pageUrl : paginationUrls) {
@@ -464,6 +464,12 @@ public class ProductScraper {
 
             // Step 5: 持久化
             saveProductsToFile();
+
+            // Step 6: 补全缺失图片 — 对 MySQL 中无图片的产品重新抓取详情页
+            scrapeStatus = "filling missing images";
+            log.info("开始补全缺失图片...");
+            int filledCount = fillMissingImages();
+            log.info("图片补全完成: 修复 {} 个产品", filledCount);
 
             long duration = System.currentTimeMillis() - start;
             log.info("爬取完成: 共 {} 个产品, 耗时 {}ms", products.size(), duration);
@@ -1053,18 +1059,68 @@ public class ProductScraper {
     /**
      * 获取页面文档
      */
+    /**
+     * 用 Java 原生 HttpClient 抓取（绕过 Jsoup 被封的问题）
+     */
+    private org.jsoup.nodes.Document fetchWithHttpClient(String url) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "en-US,en;q=0.5")
+                    .header("Referer", getReferer(url))
+                    .timeout(java.time.Duration.ofSeconds(TIMEOUT_MS / 1000))
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request, 
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 200 && response.statusCode() < 400) {
+                return Jsoup.parse(response.body(), url);
+            }
+        } catch (Exception e) {
+            log.debug("HttpClient 抓取失败: {} - {}", url, e.getMessage());
+        }
+        return null;
+    }
+
     private org.jsoup.nodes.Document fetchPage(String url) {
         try {
+            // 信任所有 SSL 证书（处理某些 CDN/防火墙的 SSL 问题）
+            javax.net.ssl.TrustManager[] trustAll = new javax.net.ssl.TrustManager[]{
+                new javax.net.ssl.X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                }
+            };
+            javax.net.ssl.SSLContext sslCtx = javax.net.ssl.SSLContext.getInstance("TLS");
+            sslCtx.init(null, trustAll, new java.security.SecureRandom());
+            
             return Jsoup.connect(url)
                     .userAgent(USER_AGENT)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "en-US,en;q=0.5")
+                    .header("Referer", getReferer(url))
+                    .sslSocketFactory(sslCtx.getSocketFactory())
                     .timeout(TIMEOUT_MS)
                     .followRedirects(true)
                     .ignoreHttpErrors(true)
                     .get();
-        } catch (IOException e) {
-            log.warn("无法访问页面: {} - {}", url, e.getMessage());
+        } catch (Exception e) {
+            log.warn("无法访问页面: {} - {}", url, e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             return null;
         }
+    }
+
+    private String getReferer(String url) {
+        if (url.contains("displaystandpop.com")) return "https://www.google.com/";
+        if (url.contains("alibaba.com")) return "http://www.displaystandpop.com/productlist.html";
+        return "https://www.google.com/";
     }
 
     private String extractText(org.jsoup.nodes.Document doc, String[] selectors) {
@@ -1267,5 +1323,80 @@ public class ProductScraper {
                 .durationMs(System.currentTimeMillis() - start)
                 .message(msg)
                 .build();
+    }
+
+    /**
+     * 补全 MySQL 中缺失图片的产品 — 逐个抓取详情页提取图片
+     */
+    public int fillMissingImages() {
+        int filled = 0;
+        int tried = 0;
+        scrapeStatus = "filling missing images: starting...";
+        try {
+            List<com.ecommerce.agent.model.Product> allProducts = productRepo.findAll();
+            int totalMissing = 0;
+            for (com.ecommerce.agent.model.Product p : allProducts) {
+                if (p.getImageUrl() != null && !p.getImageUrl().isBlank()) continue;
+                if (p.getUrl() == null || p.getUrl().isBlank()) continue;
+                totalMissing++;
+            }
+            log.info("图片补全: 共 {} 个产品缺图，开始补全...", totalMissing);
+            
+            for (com.ecommerce.agent.model.Product p : allProducts) {
+                if (p.getImageUrl() != null && !p.getImageUrl().isBlank()) continue;
+                if (p.getUrl() == null || p.getUrl().isBlank()) continue;
+
+                tried++;
+                try {
+                    Thread.sleep(REQUEST_DELAY_MS);
+                    String url = p.getUrl();
+                    org.jsoup.nodes.Document doc = fetchPage(url);
+                    
+                    // 如果 HTTP 失败，尝试 HTTPS
+                    if (doc == null && url.startsWith("http://www.alibaba.com")) {
+                        String httpsUrl = url.replace("http://", "https://");
+                        doc = fetchWithHttpClient(httpsUrl);
+                    }
+                    
+                    // 最后兜底：用原生 HttpClient 再试一次
+                    if (doc == null && url.contains("alibaba.com")) {
+                        doc = fetchWithHttpClient(url.startsWith("https://") ? url : url.replace("http://", "https://"));
+                    }
+                    
+                    if (doc == null) {
+                        if (tried % 5 == 0) {
+                            scrapeStatus = "filling: " + tried + "/" + totalMissing + " tried, " + filled + " done";
+                            log.info("图片补全进度: {}/{} 尝试, {} 成功, 当前URL: {}", tried, totalMissing, filled, url);
+                        }
+                        continue;
+                    }
+
+                    String imgUrl = extractImageUrl(doc);
+                    if (imgUrl != null && !imgUrl.isBlank()) {
+                        p.setImageUrl(imgUrl);
+                        productRepo.save(p);
+                        filled++;
+                        scrapeProgress = filled;
+                        scrapeStatus = "filling missing images: " + filled + "/" + totalMissing;
+                        log.info("图片补全 [{}/{}]: {} -> {}", filled, totalMissing, p.getName(), imgUrl);
+                    }
+
+                    // 同时补全描述
+                    if ((p.getDescription() == null || p.getDescription().isBlank())) {
+                        String desc = extractText(doc, PRODUCT_DESC_SELECTORS);
+                        if (desc != null && !desc.isBlank()) {
+                            p.setDescription(desc);
+                            productRepo.save(p);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("图片补全失败: {} - {}", p.getUrl(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("图片补全过程异常: {}", e.getMessage());
+        }
+        scrapeStatus = "filling done: " + filled + " images filled";
+        return filled;
     }
 }

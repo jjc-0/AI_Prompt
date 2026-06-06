@@ -53,6 +53,28 @@ public class ProductScraperController {
     }
 
     /**
+     * 仅补全缺失图片（不重复遍历品类/分页）
+     */
+    @PostMapping("/fill-images")
+    public ResponseEntity<Map<String, Object>> fillImages() {
+        log.info("触发图片补全（仅补缺失，不遍历）...");
+
+        new Thread(() -> {
+            try {
+                int count = productScraper.fillMissingImages();
+                log.info("图片补全完成: 修复 {} 个产品", count);
+            } catch (Exception e) {
+                log.error("图片补全异常", e);
+            }
+        }).start();
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "图片补全已启动（异步），请通过 GET /api/scraper/status 查看进度"
+        ));
+    }
+
+    /**
      * 触发全量产品爬取
      */
     @PostMapping("/run")

@@ -6,12 +6,15 @@
       <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
         <el-switch v-model="enableTools" active-text="工具调用" size="small" />
         <el-button size="small" @click="newSession" :icon="Plus">新对话</el-button>
+        <el-button class="sidebar-toggle-btn" size="small" @click="sidebarVisible = !sidebarVisible" :icon="sidebarVisible ? 'ArrowRight' : 'ArrowLeft'">
+          {{ sidebarVisible ? '收起' : '历史' }}
+        </el-button>
       </div>
     </div>
     <div class="page-body">
-      <div class="page-split">
+      <div class="page-split" :class="{ 'split-side-collapsed': !sidebarVisible }">
         <!-- 左侧：会话历史 -->
-        <div class="split-side">
+        <div class="split-side" v-show="sidebarVisible">
           <div class="card" style="padding:10px;flex-shrink:0;display:flex;gap:8px;">
             <el-button size="small" @click="loadSessions" :icon="Refresh" style="flex:1;">刷新</el-button>
             <el-button size="small" @click="newSession" :icon="Plus" type="primary">新建</el-button>
@@ -176,7 +179,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Cpu, ChatDotRound, UserFilled, Promotion, Edit, Delete,
   Tools, Plus, EditPen, TrendCharts, Connection, Message, Refresh,
-  ArrowDown, CopyDocument
+  ArrowDown, CopyDocument, ArrowLeft
 } from '@element-plus/icons-vue'
 import { agentApi } from '../api/index.js'
 
@@ -189,6 +192,7 @@ const sessionId = ref(null)
 const renameVisible = ref(false)
 const renameValue = ref('')
 const renameTarget = ref(null)
+const sidebarVisible = ref(true)
 const msgContainer = ref(null)
 const inputRef = ref(null)
 

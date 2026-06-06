@@ -1,5 +1,5 @@
-﻿<template>
-  <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
+<template>
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><Link /></el-icon>API 集成</h2>
       <p>DeepSeek API 用量监控 路 调用统计 路 费用分析</p>

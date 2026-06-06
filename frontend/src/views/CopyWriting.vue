@@ -3,9 +3,12 @@
     <div class="page-header">
       <h2><el-icon :size="20"><EditPen /></el-icon>文案 & 询盘回复</h2>
       <p>Prompt Engineering · 展示架 B2B 出口 · 产品详情 & 询盘邮件</p>
+      <el-button class="sidebar-toggle-btn" size="small" style="margin-left:auto;" @click="sidebarVisible = !sidebarVisible" :icon="sidebarVisible ? 'ArrowRight' : 'ArrowLeft'">
+        {{ sidebarVisible ? '收起面板' : '展开面板' }}
+      </el-button>
     </div>
     <div class="page-body">
-      <div class="page-split">
+      <div class="page-split" :class="{ 'split-side-collapsed': !sidebarVisible }">
         <div class="split-main">
           <div class="page-scroll">
             <!-- Form card -->
@@ -82,7 +85,7 @@
         </div>
 
         <!-- History sidebar -->
-        <div class="split-side">
+        <div class="split-side" v-show="sidebarVisible">
           <div class="card" style="padding:10px;flex-shrink:0;">
             <el-button size="small" @click="loadHistory" :icon="Refresh" style="width:100%;">刷新历史</el-button>
           </div>
@@ -126,7 +129,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { EditPen, CopyDocument, Check, Refresh, Edit, Delete, Document } from '@element-plus/icons-vue'
+import { EditPen, CopyDocument, Check, Refresh, Edit, Delete, Document, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { copywritingApi, agentApi } from '../api/index.js'
 
 const form = reactive({
@@ -139,6 +142,7 @@ const currentSessionId = ref(null)
 const historyList = ref([])
 const resultInfo = ref({})
 const renameVisible = ref(false)
+const sidebarVisible = ref(true)
 const renameValue = ref('')
 const renameTarget = ref(null)
 

@@ -1,5 +1,5 @@
 <template>
-  <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><HomeFilled /></el-icon>数据仪表盘</h2>
       <p>AI Agent 平台运营数据总览 · 实时监控模型调用与业务指标</p>

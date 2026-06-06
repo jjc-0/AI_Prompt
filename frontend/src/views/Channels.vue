@@ -1,5 +1,5 @@
-﻿<template>
-  <div style="display:flex;flex-direction:column;flex:1;min-height:0;">
+<template>
+  <div class="page-fullscreen" style="display:flex;flex-direction:column;flex:1;min-height:0;">
     <div class="page-header">
       <h2><el-icon :size="20"><Message /></el-icon>消息渠道</h2>
       <p>多渠道消息管理 路 WhatsApp / Email / WeChat / 阿里询盘 路 统一收件箱</p>

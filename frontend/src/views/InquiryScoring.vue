@@ -3,9 +3,12 @@
     <div class="page-header">
       <h2><el-icon :size="20"><DataAnalysis /></el-icon>询盘价值评分</h2>
       <p>AI 智能分析 B2B 询盘 · 识别采购意图 · 评估成交概率 · 提取关键信息</p>
+      <el-button class="sidebar-toggle-btn" size="small" style="margin-left:auto;" @click="sidebarVisible = !sidebarVisible" :icon="sidebarVisible ? 'ArrowRight' : 'ArrowLeft'">
+        {{ sidebarVisible ? '收起面板' : '展开面板' }}
+      </el-button>
     </div>
     <div class="page-body">
-      <div class="page-split">
+      <div class="page-split" :class="{ 'split-side-collapsed': !sidebarVisible }">
         <!-- Main area -->
         <div class="split-main">
           <div class="page-scroll">
@@ -98,7 +101,7 @@
         </div>
 
         <!-- Sidebar -->
-        <div class="split-side">
+        <div class="split-side" v-show="sidebarVisible">
           <div class="card">
             <div class="card-head">评分维度</div>
             <div v-for="d in dims" :key="d.name" style="margin-bottom:14px;">
@@ -136,12 +139,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DataAnalysis, Refresh, CopyDocument } from '@element-plus/icons-vue'
+import { DataAnalysis, Refresh, CopyDocument, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { inquiryApi, agentApi } from '../api/index.js'
 
 const form = reactive({ customerName: '', customerCountry: '', inquiryText: '' })
 const loading = ref(false)
 const result = ref(null)
+const sidebarVisible = ref(true)
 const recent = ref([])
 
 onMounted(() => loadRecentHistory())

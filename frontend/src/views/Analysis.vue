@@ -3,6 +3,9 @@
     <div class="page-header">
       <h2><el-icon :size="20"><TrendCharts /></el-icon>{{ pageTitle }}</h2>
       <p>展示架 POP 产品出口机会分析 · 竞争态势 · RAG 知识增强</p>
+      <el-button class="sidebar-toggle-btn" size="small" style="margin-left:auto;" @click="sidebarVisible = !sidebarVisible" :icon="sidebarVisible ? 'ArrowRight' : 'ArrowLeft'">
+        {{ sidebarVisible ? '收起面板' : '展开面板' }}
+      </el-button>
     </div>
     <div class="page-body">
       <div class="page-split">
@@ -176,6 +179,7 @@ const analyzing = ref(false)
 const currentSessionId = ref(null)
 const historyList = ref([])
 const renameVisible = ref(false)
+const sidebarVisible = ref(true)
 const renameValue = ref('')
 const renameTarget = ref(null)
 const resultInfo = ref({})

@@ -3,9 +3,12 @@
     <div class="page-header">
       <h2><el-icon :size="20"><Connection /></el-icon>多语言翻译</h2>
       <p>展示架行业专业翻译 · 多语言互译 · 跨境电商本地化增强</p>
+      <el-button class="sidebar-toggle-btn" size="small" style="margin-left:auto;" @click="sidebarVisible = !sidebarVisible" :icon="sidebarVisible ? 'ArrowRight' : 'ArrowLeft'">
+        {{ sidebarVisible ? '收起面板' : '展开面板' }}
+      </el-button>
     </div>
     <div class="page-body">
-      <div class="page-split">
+      <div class="page-split" :class="{ 'split-side-collapsed': !sidebarVisible }">
         <div class="split-main">
           <div class="page-scroll">
             <div class="card fade-in">
@@ -65,7 +68,7 @@
         </div>
 
         <!-- History -->
-        <div class="split-side">
+        <div class="split-side" v-show="sidebarVisible">
           <div class="card" style="padding:10px;flex-shrink:0;">
             <el-button size="small" @click="loadHistory" :icon="Refresh" style="width:100%;">刷新历史</el-button>
           </div>
@@ -108,7 +111,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Reading, Edit, Delete, Connection, Refresh, Check, CopyDocument } from '@element-plus/icons-vue'
+import { Reading, Edit, Delete, Connection, Refresh, Check, CopyDocument, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { translateApi, agentApi } from '../api/index.js'
 
 const form = ref({
@@ -121,6 +124,7 @@ const currentSessionId = ref(null)
 const historyList = ref([])
 const resultInfo = ref({})
 const renameVisible = ref(false)
+const sidebarVisible = ref(true)
 const renameValue = ref('')
 const renameTarget = ref(null)
 

@@ -60,6 +60,12 @@ const routes = [
     meta: { title: 'Prompt 模板管理' }
   },
   {
+    path: '/image-recognition',
+    name: 'ImageRecognition',
+    component: () => import('../views/ImageRecognition.vue'),
+    meta: { title: 'AI 智能识图' }
+  },
+  {
     path: '/channels',
     name: 'Channels',
     component: () => import('../views/Channels.vue'),

@@ -5,12 +5,12 @@ import dev.langchain4j.data.document.Document;
 import java.util.ArrayList;
 import java.util.List;
 
-final class KnowledgeDocuments {
+public final class KnowledgeDocuments {
 
     private KnowledgeDocuments() {
     }
 
-    static List<Document> getAllDocuments() {
+    public static List<Document> getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         docs.add(companyInfo());
         docs.add(productSpecs());

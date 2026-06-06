@@ -4,6 +4,8 @@ import com.ecommerce.agent.agent.AgentDispatcher;
 import com.ecommerce.agent.agent.ConversationManager;
 import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.*;
+import com.ecommerce.agent.rag.KnowledgeDocuments;
+import com.ecommerce.agent.rag.RAGService;
 import com.ecommerce.agent.service.DemoResponseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class AgentController {
     private final ConversationManager conversationManager;
     private final PromptTemplateManager promptTemplateManager;
     private final DemoResponseService demoResponseService;
+    private final RAGService ragService;
 
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, Object> body) {
@@ -140,20 +143,66 @@ public class AgentController {
     public ResponseEntity<Map<String, Object>> searchKnowledge(@RequestBody Map<String, Object> body) {
         String query = (String) body.getOrDefault("query", "");
         int maxResults = body.containsKey("maxResults") ? ((Number) body.get("maxResults")).intValue() : 5;
+        String context = ragService.retrieveContext(query, maxResults);
+        if (context == null || context.isBlank()) {
+            return ResponseEntity.ok(Map.of(
+                "query", query,
+                "results", List.of(),
+                "totalFound", 0
+            ));
+        }
+        String[] segments = context.split("\n\n---\n\n");
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (String seg : segments) {
+            results.add(Map.of("snippet", seg.substring(0, Math.min(200, seg.length())) + "...", "fullText", seg));
+        }
         return ResponseEntity.ok(Map.of(
             "query", query,
-            "results", List.of(Map.of("title", "Display Stand Export Guide", "snippet", "Comprehensive export guide for POP displays.", "score", 0.92)),
-            "totalFound", 1
+            "results", results,
+            "totalFound", results.size()
         ));
     }
 
     @GetMapping("/knowledge/status")
     public ResponseEntity<Map<String, Object>> knowledgeStatus() {
+        boolean available = ragService.isAvailable();
         return ResponseEntity.ok(Map.of(
-            "enabled", true,
-            "documentCount", 12,
-            "indexSize", "3.2 MB",
-            "lastUpdated", "2026-06-01"
+            "enabled", available,
+            "documentCount", 10,
+            "storeType", "InMemoryEmbeddingStore（内存存储，重启后清空）",
+            "sourceFile", "KnowledgeDocuments.java — 10篇硬编码文档",
+            "topics", List.of("公司信息", "产品规格", "市场分析", "物流运输", "行业展会", "行业术语", "B2B平台优化", "询盘邮件模板", "合规认证", "本地化指南")
         ));
+    }
+
+    /**
+     * 查看所有 RAG 知识库中的原始文档内容
+     */
+    @GetMapping("/knowledge/documents")
+    public ResponseEntity<Map<String, Object>> listDocuments() {
+        List<Map<String, Object>> docs = new ArrayList<>();
+        var allDocs = KnowledgeDocuments.getAllDocuments();
+        for (int i = 0; i < allDocs.size(); i++) {
+            var doc = allDocs.get(i);
+            String title = extractTitle(doc.text());
+            docs.add(Map.of(
+                "index", i + 1,
+                "title", title,
+                "content", doc.text(),
+                "length", doc.text().length()
+            ));
+        }
+        return ResponseEntity.ok(Map.of(
+            "total", docs.size(),
+            "documents", docs
+        ));
+    }
+
+    private String extractTitle(String text) {
+        if (text == null || text.isBlank()) return "Untitled";
+        String trimmed = text.trim();
+        int newline = trimmed.indexOf('\n');
+        String firstLine = newline > 0 ? trimmed.substring(0, newline) : trimmed.substring(0, Math.min(80, trimmed.length()));
+        return firstLine.replaceAll("^#+\\s*", "").trim();
     }
 }

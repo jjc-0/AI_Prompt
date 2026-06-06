@@ -54,6 +54,11 @@
             <el-icon :size="16" class="nav-icon"><TrendCharts /></el-icon>
             <span>市场分析</span>
           </router-link>
+          <router-link to="/image-recognition" class="nav-item" active-class="active">
+            <el-icon :size="16" class="nav-icon"><Picture /></el-icon>
+            <span>AI 智能识图</span>
+            <span class="nav-badge">Vision</span>
+          </router-link>
         </div>
 
         <!-- 插件 -->
@@ -140,7 +145,7 @@
 import { ref } from 'vue'
 import {
   Cpu, HomeFilled, ChatDotRound, EditPen, Connection, TrendCharts,
-  Document, DataAnalysis, Setting, Clock, Message, Link, ArrowRight
+  Document, DataAnalysis, Setting, Clock, Message, Link, ArrowRight, Picture
 } from '@element-plus/icons-vue'
 
 const menuPlugins = ref(false)

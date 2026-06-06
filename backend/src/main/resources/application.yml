@@ -21,6 +21,10 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
   h2:
     console:
       enabled: true
@@ -30,8 +34,8 @@ ai:
   providers:
     openai:
       api-key: ${OPENAI_API_KEY:sk-placeholder}
-      base-url: https://api.openai.com/v1
-      model: gpt-4o
+      base-url: ${OPENAI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      model: ${OPENAI_MODEL:qwen3.5-omni-flash}
       max-tokens: 4096
       temperature: 0.7
     deepseek:

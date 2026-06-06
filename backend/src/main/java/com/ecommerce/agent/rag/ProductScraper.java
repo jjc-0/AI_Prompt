@@ -1,5 +1,7 @@
 package com.ecommerce.agent.rag;
 
+import com.ecommerce.agent.model.Product;
+import com.ecommerce.agent.repository.ProductRepository;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +41,8 @@ import java.util.stream.Collectors;
 @Component
 public class ProductScraper {
 
+    private final ProductRepository productRepo;
+
     private static final String BASE_URL = "http://www.displaystandpop.com";
     // Alibaba 店铺备用 URL
     private static final String ALIBABA_STORE_PREFIX = "https://jcdisplay.en.alibaba.com";
@@ -55,6 +59,10 @@ public class ProductScraper {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Set<String> visitedUrls = ConcurrentHashMap.newKeySet();
     private final List<ScrapedProduct> products = Collections.synchronizedList(new ArrayList<>());
+
+    public ProductScraper(ProductRepository productRepo) {
+        this.productRepo = productRepo;
+    }
 
     // 已知的列表页 URL 模式
     private static final String[] LIST_PAGE_PATTERNS = {
@@ -891,6 +899,32 @@ public class ProductScraper {
     }
 
     private void saveProductsToFile() {
+        // 1. 保存到 MySQL
+        try {
+            for (ScrapedProduct sp : products) {
+                // 按 sku + name 去重
+                List<Product> existing = productRepo.findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(
+                        sp.getName() != null ? sp.getName().substring(0, Math.min(sp.getName().length(), 200)) : "",
+                        sp.getSku() != null ? sp.getSku() : "___none___");
+                if (existing == null || existing.isEmpty()) {
+                    productRepo.save(Product.builder()
+                            .name(sp.getName())
+                            .url(sp.getUrl())
+                            .imageUrl(sp.getImageUrl())
+                            .price(sp.getPrice())
+                            .sku(sp.getSku())
+                            .description(sp.getDescription())
+                            .category(sp.getCategory())
+                            .enabled(true)
+                            .build());
+                }
+            }
+            log.info("产品数据已保存到 MySQL: {} 条", products.size());
+        } catch (Exception e) {
+            log.error("保存产品到 MySQL 失败", e);
+        }
+
+        // 2. 同时保存到 JSON 文件（备份）
         try {
             Path knowledgeDir = Paths.get(SAVE_DIR);
             Files.createDirectories(knowledgeDir);

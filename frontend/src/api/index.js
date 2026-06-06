@@ -79,6 +79,18 @@ export const inquiryApi = {
   }
 }
 
+export const imageApi = {
+  recognize(file, prompt) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('prompt', prompt || '请详细描述这张图片的内容')
+    return api.post('/image/recognize', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000
+    })
+  }
+}
+
 export const agentApi = {
   chat(data) {
     return api.post('/agent/chat', data)

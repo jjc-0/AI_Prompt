@@ -163,13 +163,19 @@
 
           <div v-else class="kb-product-list">
             <div v-for="p in products" :key="p.id" class="kb-product-item">
-              <img
-                v-if="p.imageUrl"
-                :src="p.imageUrl"
-                class="kb-product-img"
-                loading="lazy"
-                @error="e => e.target.style.display='none'"
-              />
+              <div v-if="p.imageUrl" class="kb-product-img-box">
+                <img
+                  :src="p.imageUrl"
+                  class="kb-product-img"
+                  loading="lazy"
+                  @error="e => { e.target.style.display='none'; e.target.parentElement.classList.add('fallback'); }"
+                />
+              </div>
+              <div v-else class="kb-product-img-box fallback">
+                <div class="kb-product-placeholder" :style="{ background: getPlaceholderColor(p.id || 0) }">
+                  <span class="kb-product-placeholder-text">{{ (p.name || '?').substring(0, 3).toUpperCase() }}</span>
+                </div>
+              </div>
               <div class="kb-product-body">
                 <div class="kb-product-name" :title="p.name">{{ p.name }}</div>
                 <div class="kb-product-meta">
@@ -216,6 +222,15 @@ const productsLoading = ref(false)
 const productTotal = ref(0)
 const productTotalPages = ref(0)
 const productPage = ref(1)
+
+// 占位色块 - 基于产品 ID 生成颜色
+const PLACEHOLDER_COLORS = [
+  '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#14b8a6',
+]
+function getPlaceholderColor(id) {
+  return PLACEHOLDER_COLORS[id % PLACEHOLDER_COLORS.length]
+}
 const productPageSize = 20
 const selectedDoc = ref(null)
 const searchQuery = ref('')
@@ -511,6 +526,21 @@ onMounted(() => {
   background: #f8fafc;
   flex-shrink: 0;
   border: 1px solid #e2e8f0;
+}
+.kb-product-img-box {
+  width: 80px; height: 80px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.kb-product-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+}
+.kb-product-placeholder-text {
+  color: #fff; font-size: 18px; font-weight: 700;
+  opacity: 0.8;
 }
 .kb-product-body { flex: 1; min-width: 0; }
 .kb-product-name {

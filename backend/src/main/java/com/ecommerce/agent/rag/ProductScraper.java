@@ -44,8 +44,6 @@ public class ProductScraper {
     private final ProductRepository productRepo;
 
     private static final String BASE_URL = "http://www.displaystandpop.com";
-    // Alibaba 店铺备用 URL
-    private static final String ALIBABA_STORE_PREFIX = "https://jcdisplay.en.alibaba.com";
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final int REQUEST_DELAY_MS = 1500;
@@ -602,20 +600,28 @@ public class ProductScraper {
     }
 
     /**
-     * 逐条写入 MySQL（实时持久化）
+     * 逐条写入 MySQL（实时持久化），URL 去重 + 过滤非商品页
      */
     private void saveOneToMySql(ScrapedProduct sp) {
+        // 过滤非产品 URL
+        if (sp.getUrl() == null || !sp.getUrl().contains("/product-detail/")) {
+            log.debug("跳过非产品URL: {}", sp.getUrl());
+            return;
+        }
+        // 名称黑名单检查
+        if (isBlacklistedName(sp.getName())) {
+            log.debug("跳过黑名单名称: {}", sp.getName());
+            return;
+        }
         try {
-            List<com.ecommerce.agent.model.Product> existing = productRepo
-                    .findByNameContainingIgnoreCaseOrSkuContainingIgnoreCase(
-                            sp.getName() != null ? sp.getName().substring(0, Math.min(sp.getName().length(), 200)) : "",
-                            sp.getSku() != null ? sp.getSku() : "___none___");
-            if (existing != null && !existing.isEmpty()) {
-                com.ecommerce.agent.model.Product existingProduct = existing.get(0);
-                // 如果已有产品缺少图片/描述等，补全
+            // URL 作为唯一去重键
+            Optional<com.ecommerce.agent.model.Product> existingOpt = productRepo.findByUrl(sp.getUrl());
+            if (existingOpt.isPresent()) {
+                com.ecommerce.agent.model.Product existingProduct = existingOpt.get();
                 boolean updated = false;
                 if ((existingProduct.getImageUrl() == null || existingProduct.getImageUrl().isBlank())
-                        && sp.getImageUrl() != null && !sp.getImageUrl().isBlank()) {
+                        && sp.getImageUrl() != null && !sp.getImageUrl().isBlank()
+                        && !isBadgeImage(sp.getImageUrl())) {
                     existingProduct.setImageUrl(sp.getImageUrl());
                     updated = true;
                 }
@@ -640,7 +646,7 @@ public class ProductScraper {
             productRepo.save(com.ecommerce.agent.model.Product.builder()
                     .name(sp.getName())
                     .url(sp.getUrl())
-                    .imageUrl(sp.getImageUrl())
+                    .imageUrl(isBadgeImage(sp.getImageUrl()) ? null : sp.getImageUrl())
                     .price(sp.getPrice())
                     .sku(sp.getSku())
                     .description(sp.getDescription())
@@ -655,6 +661,15 @@ public class ProductScraper {
     public int getScrapeProgress() { return scrapeProgress; }
     public int getScrapeTotal() { return scrapeTotal; }
     public String getScrapeStatus() { return scrapeStatus; }
+
+    // 公开方法，给 Controller 测试用
+    public org.jsoup.nodes.Document fetchWithHttpClientPublic(String url) {
+        return fetchWithHttpClient(url);
+    }
+
+    public String extractImageUrlPublic(org.jsoup.nodes.Document doc) {
+        return extractImageUrl(doc);
+    }
 
     /**
      * 爬取单个产品详情页
@@ -813,6 +828,20 @@ public class ProductScraper {
                         if (imageUrl.isBlank()) imageUrl = img.attr("data-ks-lazyload");
                         if (imageUrl.isBlank()) imageUrl = img.attr("data-original");
                         if (!imageUrl.isBlank()) break;
+                    }
+                }
+
+                // 过滤认证徽章假图（会被误抓为产品图）
+                if (imageUrl != null && imageUrl.contains("H118ee5207f09449ab9912b17e2b59bebw")) {
+                    imageUrl = null;
+                }
+                // 降级方案：尝试从 a.product-image img 或 .img-box img 获取真实产品图
+                if (imageUrl == null || imageUrl.isBlank()) {
+                    Element productImg = card.selectFirst("a.product-image img, .img-box img");
+                    if (productImg != null) {
+                        imageUrl = productImg.absUrl("src");
+                        if (imageUrl.isBlank()) imageUrl = productImg.attr("src");
+                        if (!imageUrl.isBlank()) imageUrl = resolveUrl(imageUrl);
                     }
                 }
 
@@ -1064,7 +1093,19 @@ public class ProductScraper {
      */
     private org.jsoup.nodes.Document fetchWithHttpClient(String url) {
         try {
+            // 信任所有 SSL 证书
+            javax.net.ssl.TrustManager[] trustAll = new javax.net.ssl.TrustManager[]{
+                new javax.net.ssl.X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
+                }
+            };
+            javax.net.ssl.SSLContext sslCtx = javax.net.ssl.SSLContext.getInstance("TLS");
+            sslCtx.init(null, trustAll, new java.security.SecureRandom());
+
             java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .sslContext(sslCtx)
                     .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
                     .connectTimeout(java.time.Duration.ofSeconds(10))
                     .build();
@@ -1083,7 +1124,7 @@ public class ProductScraper {
                 return Jsoup.parse(response.body(), url);
             }
         } catch (Exception e) {
-            log.debug("HttpClient 抓取失败: {} - {}", url, e.getMessage());
+            log.warn("HttpClient 抓取失败: {} - {}", url, e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
         return null;
     }
@@ -1207,6 +1248,12 @@ public class ProductScraper {
         return false;
     }
 
+    private boolean isBadgeImage(String imageUrl) {
+        if (imageUrl == null) return false;
+        // 过滤阿里认证徽章图
+        return imageUrl.contains("H118ee5207f09449ab9912b17e2b59bebw");
+    }
+
     private void saveProductsToFile() {
         // 1. 保存到 MySQL
         try {
@@ -1326,77 +1373,71 @@ public class ProductScraper {
     }
 
     /**
-     * 补全 MySQL 中缺失图片的产品 — 逐个抓取详情页提取图片
+     * 补全缺失产品图片 — 从列表页提取缩略图
+     * 注意：Alibaba 详情页需要登录，无法直接抓取，只能通过 displaystandpop.com 列表页获取缩略图
      */
     public int fillMissingImages() {
         int filled = 0;
-        int tried = 0;
-        scrapeStatus = "filling missing images: starting...";
+        scrapeStatus = "filling images from list pages...";
         try {
             List<com.ecommerce.agent.model.Product> allProducts = productRepo.findAll();
             int totalMissing = 0;
             for (com.ecommerce.agent.model.Product p : allProducts) {
-                if (p.getImageUrl() != null && !p.getImageUrl().isBlank()) continue;
-                if (p.getUrl() == null || p.getUrl().isBlank()) continue;
-                totalMissing++;
+                if (p.getImageUrl() == null || p.getImageUrl().isBlank()) totalMissing++;
             }
-            log.info("图片补全: 共 {} 个产品缺图，开始补全...", totalMissing);
-            
-            for (com.ecommerce.agent.model.Product p : allProducts) {
-                if (p.getImageUrl() != null && !p.getImageUrl().isBlank()) continue;
-                if (p.getUrl() == null || p.getUrl().isBlank()) continue;
+            if (totalMissing == 0) {
+                log.info("所有产品已有图片，无需补全");
+                scrapeStatus = "filling done: all images present";
+                return 0;
+            }
+            log.info("从列表页补全图片: {} 个缺失, {} 个品类", totalMissing, KNOWN_CATEGORY_URLS.length);
 
-                tried++;
+            for (String catPath : KNOWN_CATEGORY_URLS) {
+                String listUrl = BASE_URL + catPath;
                 try {
                     Thread.sleep(REQUEST_DELAY_MS);
-                    String url = p.getUrl();
-                    org.jsoup.nodes.Document doc = fetchPage(url);
-                    
-                    // 如果 HTTP 失败，尝试 HTTPS
-                    if (doc == null && url.startsWith("http://www.alibaba.com")) {
-                        String httpsUrl = url.replace("http://", "https://");
-                        doc = fetchWithHttpClient(httpsUrl);
-                    }
-                    
-                    // 最后兜底：用原生 HttpClient 再试一次
-                    if (doc == null && url.contains("alibaba.com")) {
-                        doc = fetchWithHttpClient(url.startsWith("https://") ? url : url.replace("http://", "https://"));
-                    }
-                    
-                    if (doc == null) {
-                        if (tried % 5 == 0) {
-                            scrapeStatus = "filling: " + tried + "/" + totalMissing + " tried, " + filled + " done";
-                            log.info("图片补全进度: {}/{} 尝试, {} 成功, 当前URL: {}", tried, totalMissing, filled, url);
+                    org.jsoup.nodes.Document doc = fetchPage(listUrl);
+                    if (doc == null) continue;
+                    List<ScrapedProduct> cardProducts = extractProductsFromListPage(doc, listUrl);
+
+                    for (ScrapedProduct sp : cardProducts) {
+                        if (sp.getUrl() == null || sp.getUrl().isBlank()) continue;
+                        if (sp.getImageUrl() == null || sp.getImageUrl().isBlank()) continue;
+                        if (isBadgeImage(sp.getImageUrl())) continue;
+
+                        // URL 匹配：同时尝试 http 和 https 版本
+                        Optional<com.ecommerce.agent.model.Product> opt = productRepo.findByUrl(sp.getUrl());
+                        if (opt.isEmpty() && sp.getUrl().startsWith("http://")) {
+                            opt = productRepo.findByUrl(sp.getUrl().replace("http://", "https://"));
                         }
-                        continue;
-                    }
+                        if (opt.isEmpty() && sp.getUrl().startsWith("https://")) {
+                            opt = productRepo.findByUrl(sp.getUrl().replace("https://", "http://"));
+                        }
 
-                    String imgUrl = extractImageUrl(doc);
-                    if (imgUrl != null && !imgUrl.isBlank()) {
-                        p.setImageUrl(imgUrl);
-                        productRepo.save(p);
-                        filled++;
-                        scrapeProgress = filled;
-                        scrapeStatus = "filling missing images: " + filled + "/" + totalMissing;
-                        log.info("图片补全 [{}/{}]: {} -> {}", filled, totalMissing, p.getName(), imgUrl);
-                    }
-
-                    // 同时补全描述
-                    if ((p.getDescription() == null || p.getDescription().isBlank())) {
-                        String desc = extractText(doc, PRODUCT_DESC_SELECTORS);
-                        if (desc != null && !desc.isBlank()) {
-                            p.setDescription(desc);
-                            productRepo.save(p);
+                        if (opt.isPresent()) {
+                            com.ecommerce.agent.model.Product p = opt.get();
+                            if (p.getImageUrl() == null || p.getImageUrl().isBlank()) {
+                                p.setImageUrl(sp.getImageUrl());
+                                productRepo.save(p);
+                                filled++;
+                                scrapeProgress = filled;
+                                scrapeStatus = "filling: " + filled + "/" + totalMissing;
+                                log.info("补图 [{}/{}]: {}", filled, totalMissing, p.getName());
+                            }
                         }
                     }
+                    if (filled >= totalMissing) break;
                 } catch (Exception e) {
-                    log.debug("图片补全失败: {} - {}", p.getUrl(), e.getMessage());
+                    log.warn("列表页图片提取失败: {} - {}", listUrl, e.getMessage());
                 }
             }
+
+            scrapeStatus = "filling done: " + filled + " / " + totalMissing;
+            log.info("图片补全完成: {}/{} 个产品", filled, totalMissing);
         } catch (Exception e) {
+            scrapeStatus = "filling error";
             log.warn("图片补全过程异常: {}", e.getMessage());
         }
-        scrapeStatus = "filling done: " + filled + " images filled";
         return filled;
     }
 }

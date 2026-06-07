@@ -4,6 +4,7 @@ import com.ecommerce.agent.rag.KnowledgeBaseLoader;
 import com.ecommerce.agent.rag.ProductScraper;
 import com.ecommerce.agent.rag.ProductScraper.ScrapedProduct;
 import com.ecommerce.agent.rag.ProductScraper.ScrapeResult;
+import com.ecommerce.agent.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -23,6 +24,7 @@ public class ProductScraperController {
 
     private final ProductScraper productScraper;
     private final KnowledgeBaseLoader knowledgeBaseLoader;
+    private final ProductRepository productRepo;
 
     /**
      * 从指定产品列表 URL 逐条爬取并实时写入 MySQL（防丢失）
@@ -246,6 +248,67 @@ public class ProductScraperController {
         response.put("message", "知识库重新加载完成");
         response.put("durationMs", elapsed);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 清理非产品数据和假图
+     */
+    @PostMapping("/cleanup")
+    public ResponseEntity<Map<String, Object>> cleanup() {
+        Map<String, Object> res = new LinkedHashMap<>();
+        int del = productRepo.deleteNonProductEntries();
+        int clear = productRepo.clearBadgeImage();
+        res.put("deleted", del);
+        res.put("badgeImageCleared", clear);
+        res.put("success", true);
+        return ResponseEntity.ok(res);
+    }
+
+    /**
+     * 更新单个产品图片 URL
+     */
+    @PutMapping("/products/{id}/image")
+    public ResponseEntity<Map<String, Object>> updateProductImage(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        var opt = productRepo.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var p = opt.get();
+        String imageUrl = body.get("imageUrl");
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "imageUrl 不能为空"));
+        }
+        p.setImageUrl(imageUrl);
+        productRepo.save(p);
+        log.info("产品 {} 图片已更新: {}", id, imageUrl.substring(0, Math.min(80, imageUrl.length())));
+        return ResponseEntity.ok(Map.of("success", true, "id", id));
+    }
+
+    /**
+     * 测试单个 Alibaba URL 的 HttpClient 抓取
+     */
+    @GetMapping("/test-httpclient")
+    public ResponseEntity<Map<String, Object>> testHttpClient(@RequestParam(defaultValue = "") String url) {
+        if (url.isBlank()) {
+            url = "https://www.alibaba.com/product-detail/Custom-Logo-Eco-Friendly-Recyclable-Art_1601269530208.html";
+        }
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("url", url);
+        try {
+            org.jsoup.nodes.Document doc = productScraper.fetchWithHttpClientPublic(url);
+            res.put("success", doc != null);
+            if (doc != null) {
+                String img = productScraper.extractImageUrlPublic(doc);
+                res.put("imageUrl", img);
+                res.put("title", doc.title());
+            }
+        } catch (Exception e) {
+            res.put("success", false);
+            res.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+        return ResponseEntity.ok(res);
     }
 
     /**

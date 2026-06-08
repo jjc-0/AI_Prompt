@@ -52,7 +52,7 @@ public class AgentDispatcher {
 
     public AgentResponse dispatch(AgentRequest request) {
         long startTime = System.currentTimeMillis();
-        String sessionId = ensureSession(request.getSessionId());
+        String sessionId = ensureSession(request.getSessionId(), toOperationType(request.getTaskType()));
         boolean isNewSession = request.getSessionId() == null || !conversationManager.sessionExists(request.getSessionId());
 
         conversationManager.addMessage(sessionId, "user", request.getMessage());
@@ -316,10 +316,26 @@ public class AgentDispatcher {
         return promptManager.renderTemplate("agent-system", vars);
     }
 
-    private String ensureSession(String sessionId) {
+    private String ensureSession(String sessionId, String operationType) {
         if (sessionId != null && conversationManager.sessionExists(sessionId)) {
             return sessionId;
         }
-        return conversationManager.createSession();
+        return conversationManager.createSession(null, operationType);
+    }
+
+    /**
+     * Map taskType to normalized operationType for dashboard grouping.
+     * Each distinct Agent gets its own type label with a dedicated color.
+     */
+    private String toOperationType(String taskType) {
+        if (taskType == null) return "chat";
+        return switch (taskType) {
+            case "chat"             -> "chat";
+            case "translation"      -> "translate";
+            case "inquiry_scoring"  -> "inquiry";
+            case "analysis"         -> "analysis";
+            case "copywriting"      -> "copywriting";
+            default                 -> "chat";
+        };
     }
 }

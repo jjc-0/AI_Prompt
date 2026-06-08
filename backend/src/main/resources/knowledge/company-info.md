@@ -1,4 +1,4 @@
-﻿# JC Display Knowledge Base
+# JC Display Knowledge Base
 
 ## Company Overview
 JC Display (杰创展示) is a professional manufacturer of cardboard display stands, POP displays, and retail fixtures based in China. Founded in 2012, we serve B2B clients worldwide.
@@ -28,5 +28,5 @@ JC Display (杰创展示) is a professional manufacturer of cardboard display st
 
 ## Certifications
 - FSC certified materials available
-- ISO 9001:2015
+- Industry standard quality management
 - Disney ILS certified

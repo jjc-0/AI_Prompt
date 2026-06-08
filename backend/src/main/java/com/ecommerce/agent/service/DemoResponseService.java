@@ -25,17 +25,17 @@ public class DemoResponseService {
                     • ✅ Printing: 4C CMYK offset printing with high glossy finish
                     • ✅ MOQ: 100 pcs per design (negotiable)
                     • ✅ Custom Design: Free 3D design & mockup before production
-                    • ✅ Certification: SGS, ISO 9001 compliant
+                    • ✅ Certification: Factory audited, quality compliant
 
-                    ## Product Description
-                    Shenzhen JC Display Ltd is a professional POP display manufacturer with 17+ years of experience. Our %s is designed for %s market retailers and brands who need eye-catching in-store displays.
+                  ## Product Description
+                  Shenzhen JC Display Ltd is a professional POP display manufacturer with industry experience. Our %s is designed for %s market retailers and brands who need eye-catching in-store displays.
 
-                    **Why Choose JC Display:**
-                    - 🏭 Direct factory price, save 30%%+ vs trading companies
-                    - 📦 Flat pack delivery saves 60%% shipping cost
-                    - 🎨 Free custom design service (size, color, printing)
-                    - ⏱ 10-12 days production lead time
-                    - 🌍 Export to 30+ countries (US, UK, EU, AU, JP)
+                  **Why Choose JC Display:**
+                  - 🏭 Direct factory price with competitive advantage
+                  - 📦 Flat pack delivery for shipping cost optimization
+                  - 🎨 Free custom design service (size, color, printing)
+                  - ⏱ Efficient production lead time
+                  - 🌍 Export to global markets (US, UK, EU, AU, JP)
 
                     **Specifications:**
                     | Item | Details |

@@ -2,6 +2,8 @@ package com.ecommerce.agent.controller;
 
 import com.ecommerce.agent.agent.AgentDispatcher;
 import com.ecommerce.agent.agent.ConversationManager;
+import com.ecommerce.agent.config.AIConfig;
+import com.ecommerce.agent.llm.MultiModelOrchestrator;
 import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.*;
 import com.ecommerce.agent.rag.KnowledgeBaseLoader;
@@ -24,6 +26,8 @@ public class AgentController {
 
     private final AgentDispatcher agentDispatcher;
     private final ConversationManager conversationManager;
+    private final MultiModelOrchestrator orchestrator;
+    private final AIConfig aiConfig;
     private final PromptTemplateManager promptTemplateManager;
     private final DemoResponseService demoResponseService;
     private final RAGService ragService;
@@ -33,6 +37,8 @@ public class AgentController {
 
     public AgentController(AgentDispatcher agentDispatcher,
                            ConversationManager conversationManager,
+                           MultiModelOrchestrator orchestrator,
+                           AIConfig aiConfig,
                            PromptTemplateManager promptTemplateManager,
                            DemoResponseService demoResponseService,
                            RAGService ragService,
@@ -41,6 +47,8 @@ public class AgentController {
                            KnowledgeBaseLoader knowledgeBaseLoader) {
         this.agentDispatcher = agentDispatcher;
         this.conversationManager = conversationManager;
+        this.orchestrator = orchestrator;
+        this.aiConfig = aiConfig;
         this.promptTemplateManager = promptTemplateManager;
         this.demoResponseService = demoResponseService;
         this.ragService = ragService;
@@ -57,6 +65,7 @@ public class AgentController {
 
         AgentRequest request = AgentRequest.builder()
             .sessionId(sessionId)
+            .taskType("chat")
             .message(message)
             .enableTools(enableTools)
             .build();
@@ -102,7 +111,10 @@ public class AgentController {
             Map<String, Object> m = new LinkedHashMap<>(s);
             String sid = (String) s.get("sessionId");
             String opType = (String) s.get("operationType");
-            if (opType == null) opType = "agent";
+            String title = (String) s.get("title");
+            if (opType == null || opType.isBlank()) {
+                opType = inferType(title);
+            }
             m.put("type", opType);
             m.put("modelUsed", "deepseek-chat");
 
@@ -152,6 +164,51 @@ public class AgentController {
                                                             @RequestBody Map<String, String> body) {
         conversationManager.updateSessionTitle(sessionId, body.get("title"));
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @PostMapping("/session/{sessionId}/auto-title")
+    public ResponseEntity<Map<String, Object>> autoTitle(@PathVariable String sessionId) {
+        List<ConversationRecord> records = conversationManager.getDBHistory(sessionId);
+        if (records.isEmpty()) {
+            return ResponseEntity.ok(Map.of("success", false, "title", "空对话"));
+        }
+
+        // Build conversation summary from first few messages
+        StringBuilder sb = new StringBuilder();
+        int max = Math.min(records.size(), 6);
+        for (int i = 0; i < max; i++) {
+            ConversationRecord r = records.get(i);
+            String content = r.getContent();
+            if (content != null) {
+                int limit = Math.min(content.length(), 100);
+                sb.append(r.getRole()).append(": ").append(content, 0, limit).append("\n");
+            }
+        }
+
+        if (!aiConfig.isDeepSeekKeyConfigured()) {
+            String fallback = sb.length() > 30 ? sb.substring(0, 30).replace('\n', ' ') : sb.toString().replace('\n', ' ');
+            conversationManager.updateSessionTitle(sessionId, fallback);
+            return ResponseEntity.ok(Map.of("success", true, "title", fallback, "note", "AI未配置，使用摘要"));
+        }
+
+        try {
+            String systemPrompt = """
+                    你是对话标题生成器。根据对话内容生成简短标题。
+                    要求：10个汉字或20个英文字符以内，只返回标题，不要任何引号、标点或解释。
+                    如果是翻译任务用"翻译: "开头，分析任务用"分析: "开头，文案任务用"文案: "开头。
+                    """;
+            String title = orchestrator.reasoning(systemPrompt,
+                    "为以下对话生成标题:\n" + sb.toString()).get();
+            if (title != null && !title.isBlank()) {
+                title = title.trim().replaceAll("^[\"']|[\"']$", "");
+                if (title.length() > 30) title = title.substring(0, 30);
+                conversationManager.updateSessionTitle(sessionId, title);
+                return ResponseEntity.ok(Map.of("success", true, "title", title));
+            }
+        } catch (Exception e) {
+            log.warn("AI auto-title failed: {}", e.getMessage());
+        }
+        return ResponseEntity.ok(Map.of("success", false, "title", "自动命名失败"));
     }
 
     @PostMapping("/session/{sessionId}/clear")
@@ -270,5 +327,22 @@ public class AgentController {
             "success", true,
             "message", "已从 MySQL 重新加载知识库到向量存储"
         ));
+    }
+
+    /**
+     * Infer operationType from session title for old records
+     * where operationType was not stored (null in DB). New records
+     * created after the fix already have the correct value.
+     */
+    private String inferType(String title) {
+        if (title == null) return "chat";
+        String t = title.toLowerCase();
+        if (t.contains("inquiry") || t.contains("scoring") || t.contains("询盘")) return "inquiry";
+        if (t.contains("translat") || t.contains("翻译"))               return "translate";
+        if (t.contains("copywrit") || t.contains("文案") || t.contains("email")) return "copywriting";
+        if (t.contains("analysis") || t.contains("分析") || t.contains("market")
+                || t.contains("seo") || t.contains("competitor"))       return "analysis";
+        if (t.contains("image") || t.contains("识图") || t.contains("recognition")) return "image-recognition";
+        return "chat";
     }
 }

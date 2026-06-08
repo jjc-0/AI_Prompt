@@ -44,6 +44,8 @@ public class ProductScraper {
     private final ProductRepository productRepo;
 
     private static final String BASE_URL = "http://www.displaystandpop.com";
+    // Alibaba 店铺备用 URL
+    private static final String ALIBABA_STORE_PREFIX = "https://jcdisplay.en.alibaba.com";
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     private static final int REQUEST_DELAY_MS = 1500;

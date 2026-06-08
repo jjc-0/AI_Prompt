@@ -127,4 +127,4 @@ npm run dev
 
 ## 版权
 
-&copy; 2025 深圳市杰创包装展示有限公司（Shenzhen JC Display Ltd.）保留所有权利。
+&copy; 2026 深圳市杰创包装展示有限公司（Shenzhen JC Display Ltd.）保留所有权利。

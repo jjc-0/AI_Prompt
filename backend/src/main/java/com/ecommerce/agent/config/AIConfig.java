@@ -16,6 +16,7 @@ public class AIConfig {
     public static class Providers {
         private OpenAIConfig openai = new OpenAIConfig();
         private DeepSeekConfig deepseek = new DeepSeekConfig();
+        private ImageGenConfig imageGen = new ImageGenConfig();
     }
 
     @Data
@@ -41,6 +42,17 @@ public class AIConfig {
         private int maxConversationRounds;
         private int contextWindowSize;
         private long toolCallTimeout;
+    }
+
+    @Data
+    public static class ImageGenConfig {
+        private boolean enabled = false;
+        private String apiKey;
+        private String baseUrl = "https://dashscope.aliyuncs.com";
+        private String model = "wanx2.1-t2i-turbo";
+        private String size = "1024*1024";
+        private String style = "auto";
+        private int n = 1;
     }
 
     @Data

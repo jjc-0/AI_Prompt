@@ -16,6 +16,7 @@ import ApiIntegration from "@/pages/ApiIntegration"
 import AuthCenter from "@/pages/AuthCenter"
 import WorkflowBuilder from "@/pages/WorkflowBuilder"
 import JCClaw from "@/pages/JCClaw"
+import ProductImage from "@/pages/ProductImage"
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="auth-center" element={<AuthCenter />} />
           <Route path="workflow" element={<WorkflowBuilder />} />
           <Route path="jc-claw" element={<JCClaw />} />
+          <Route path="product-image" element={<ProductImage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

@@ -16,6 +16,7 @@ import {
   MessageCircle,
   TrendingUp,
   Cog,
+  ShoppingBag,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +52,7 @@ const navigation: NavGroup[] = [
       { href: "/translate", label: "多语言翻译", icon: <Globe size={17} /> },
       { href: "/analysis", label: "市场分析", icon: <TrendingUp size={17} /> },
       { href: "/image-recognition", label: "AI 智能识图", icon: <Image size={17} />, badge: "Vision", badgeVariant: "blue" },
+      { href: "/product-image", label: "电商产品图", icon: <ShoppingBag size={17} />, badge: "NEW", badgeVariant: "blue" },
       { href: "/knowledge-base", label: "RAG 知识库", icon: <Database size={17} />, badge: "DB", badgeVariant: "secondary" },
     ],
   },
@@ -172,6 +174,23 @@ export default function Layout() {
           }}
         >
           <Outlet />
+        </div>
+
+        {/* Copyright Footer */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "8px 16px",
+            borderTop: "1px solid #EAECF0",
+            background: "#FFFFFF",
+          }}
+        >
+          <span className="text-[11px] text-muted-foreground/50">
+            &copy; 2026 深圳市杰创包装展示有限公司（Shenzhen JC Display Ltd.）
+          </span>
         </div>
       </main>
     </div>

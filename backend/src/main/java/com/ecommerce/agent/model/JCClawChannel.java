@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "claw_channels")
+@Table(name = "jc_claw_channels")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClawChannel {
+public class JCClawChannel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,7 +58,7 @@ public class ClawChannel {
     private LocalDateTime boundAt;
 
     @PrePersist
-    void prePersist() {
+    protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }

@@ -11,6 +11,7 @@ import {
   Zap,
   Trash2,
   MessageSquare,
+  MessageCircle,
   Plus,
   Sparkles,
   Check,
@@ -179,7 +180,7 @@ export default function AgentChat() {
   }
 
   const typeLabel = (t: string) => {
-    const map: Record<string, string> = { chat: "对话", inquiry: "询盘", copywriting: "文案", translate: "翻译", analysis: "分析" }
+    const map: Record<string, string> = { chat: "对话", inquiry: "询盘", copywriting: "文案", translate: "翻译", analysis: "分析", wechat: "微信" }
     return map[t] || t
   }
 
@@ -263,9 +264,15 @@ export default function AgentChat() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 pl-5 overflow-hidden">
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-normal flex-shrink-0">
-                            {typeLabel(s.type)}
-                          </Badge>
+                          {s.type === "wechat" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-normal flex-shrink-0 border-green-300 text-green-700 bg-green-50 gap-0.5">
+                              <MessageCircle size={9} />微信
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 font-normal flex-shrink-0">
+                              {typeLabel(s.type)}
+                            </Badge>
+                          )}
                           <span className="text-[10px] text-muted-foreground truncate">
                             {timeAgo(s.lastActive)}
                           </span>

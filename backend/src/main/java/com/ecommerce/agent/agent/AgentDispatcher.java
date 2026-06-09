@@ -320,6 +320,9 @@ public class AgentDispatcher {
         if (sessionId != null && conversationManager.sessionExists(sessionId)) {
             return sessionId;
         }
+        if (sessionId != null) {
+            return conversationManager.createSession(sessionId, null, operationType);
+        }
         return conversationManager.createSession(null, operationType);
     }
 

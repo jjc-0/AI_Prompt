@@ -39,7 +39,11 @@ public class ConversationManager {
     }
 
     public String createSession(String title, String operationType) {
-        String sessionId = UUID.randomUUID().toString();
+        return createSession(UUID.randomUUID().toString(), title, operationType);
+    }
+
+    /** 使用指定 sessionId 创建会话（用于微信等外部渠道绑定固定会话） */
+    public String createSession(String sessionId, String title, String operationType) {
         sessions.put(sessionId, new ArrayDeque<>());
 
         if (isDbAvailable()) {

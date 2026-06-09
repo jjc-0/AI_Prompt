@@ -69,7 +69,7 @@ const navigation: NavGroup[] = [
       { href: "/channels", label: "消息渠道", icon: <MessageCircle size={17} /> },
       { href: "/api-integration", label: "API 集成", icon: <Link size={17} /> },
       { href: "/auth-center", label: "应用授权中心", icon: <Shield size={17} /> },
-      { href: "/jc-claw", label: "JC-CLAW 助手", icon: <Cog size={17} />, badge: "CLAW", badgeVariant: "success" },
+      { href: "/jc-claw", label: "JC-CLAW 助手", icon: <Cog size={17} />, badge: "JC-CLAW", badgeVariant: "success" },
     ],
   },
 ]

@@ -8,6 +8,8 @@ import com.ecommerce.agent.llm.PromptTemplateManager;
 import com.ecommerce.agent.model.*;
 import com.ecommerce.agent.rag.KnowledgeBaseLoader;
 import com.ecommerce.agent.rag.RAGService;
+import com.ecommerce.agent.repository.ConversationRecordRepository;
+import com.ecommerce.agent.repository.ConversationSessionRepository;
 import com.ecommerce.agent.repository.KnowledgeDocumentRepository;
 import com.ecommerce.agent.repository.ProductRepository;
 import com.ecommerce.agent.service.DemoResponseService;
@@ -33,6 +35,8 @@ public class AgentController {
     private final RAGService ragService;
     private final KnowledgeDocumentRepository knowledgeDocRepo;
     private final ProductRepository productRepo;
+    private final ConversationRecordRepository recordRepo;
+    private final ConversationSessionRepository sessionRepo;
     private final KnowledgeBaseLoader knowledgeBaseLoader;
 
     public AgentController(AgentDispatcher agentDispatcher,
@@ -44,7 +48,9 @@ public class AgentController {
                            RAGService ragService,
                            KnowledgeDocumentRepository knowledgeDocRepo,
                            ProductRepository productRepo,
-                           KnowledgeBaseLoader knowledgeBaseLoader) {
+                        ConversationRecordRepository recordRepo,
+                        ConversationSessionRepository sessionRepo,
+                        KnowledgeBaseLoader knowledgeBaseLoader) {
         this.agentDispatcher = agentDispatcher;
         this.conversationManager = conversationManager;
         this.orchestrator = orchestrator;
@@ -54,6 +60,8 @@ public class AgentController {
         this.ragService = ragService;
         this.knowledgeDocRepo = knowledgeDocRepo;
         this.productRepo = productRepo;
+        this.recordRepo = recordRepo;
+        this.sessionRepo = sessionRepo;
         this.knowledgeBaseLoader = knowledgeBaseLoader;
     }
 
@@ -326,6 +334,199 @@ public class AgentController {
         return ResponseEntity.ok(Map.of(
             "success", true,
             "message", "已从 MySQL 重新加载知识库到向量存储"
+        ));
+    }
+
+    /**
+     * Agent 广场 — 按操作类型统计会话数量和总调用次数
+     */
+    @GetMapping("/agent-stats")
+    public ResponseEntity<Map<String, Object>> getAgentStats() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> agents = new LinkedHashMap<>();
+
+        try {
+            // 会话数按 operationType 统计
+            List<Object[]> typeCounts = sessionRepo.countByOperationType();
+            for (Object[] row : typeCounts) {
+                String type = (String) row[0];
+                if (type == null || type.isBlank()) type = "chat";
+                long count = ((Number) row[1]).longValue();
+                Map<String, Object> info = new LinkedHashMap<>();
+                info.put("sessionCount", count);
+                agents.put(type, info);
+            }
+
+            // 总会话数
+            long totalSessions = sessionRepo.count();
+
+            // 总记录数（工具调用次数）
+            long totalRecords = 0;
+            try {
+                totalRecords = recordRepo.count();
+            } catch (Exception ignored) {}
+
+            result.put("agents", agents);
+            result.put("totalSessions", totalSessions);
+            result.put("totalRecords", totalRecords);
+        } catch (Exception e) {
+            log.warn("查询 Agent 统计失败: {}", e.getMessage());
+            result.put("agents", Map.of());
+            result.put("totalSessions", 0);
+            result.put("totalRecords", 0);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Agent 执行中心 — 聚合近24小时会话记录，返回实时执行状态
+     */
+    @GetMapping("/execution-status")
+    public ResponseEntity<Map<String, Object>> getExecutionStatus() {
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime now = LocalDateTime.now();
+        List<ConversationRecord> records;
+
+        try {
+            records = recordRepo.findByDateRange(since, now);
+        } catch (Exception e) {
+            log.warn("查询执行状态失败: {}", e.getMessage());
+            records = Collections.emptyList();
+        }
+
+        // 按 sessionId 分组
+        Map<String, List<ConversationRecord>> bySession = records.stream()
+                .collect(Collectors.groupingBy(ConversationRecord::getSessionId));
+
+        // 类型 → Agent 名称映射
+        Map<String, String> typeNameMap = Map.of(
+                "chat", "客服 Agent",
+                "inquiry", "询盘评分 Agent",
+                "copywriting", "文案生成 Agent",
+                "translate", "翻译 Agent",
+                "analysis", "分析 Agent",
+                "image-recognition", "识图 Agent",
+                "seo", "SEO Agent"
+        );
+
+        // ── activeAgents ──
+        List<Map<String, Object>> activeAgents = new ArrayList<>();
+        for (Map.Entry<String, List<ConversationRecord>> entry : bySession.entrySet()) {
+            String sid = entry.getKey();
+            List<ConversationRecord> sessionRecords = entry.getValue();
+            if (sessionRecords.isEmpty()) continue;
+
+            ConversationRecord first = sessionRecords.get(sessionRecords.size() - 1);
+            String opType = first.getOperationType();
+            if (opType == null || opType.isBlank()) opType = "chat";
+            String agentName = typeNameMap.getOrDefault(opType, opType + " Agent");
+
+            // 截取首条用户消息作为任务描述
+            String task = "对话中";
+            for (ConversationRecord r : sessionRecords) {
+                if ("user".equals(r.getRole()) && r.getContent() != null) {
+                    task = r.getContent().length() > 30
+                            ? r.getContent().substring(0, 30) + "..."
+                            : r.getContent();
+                    break;
+                }
+            }
+
+            ConversationRecord lastRec = sessionRecords.get(0); // 按时间倒序，第一条是最新
+            Map<String, Object> agent = new LinkedHashMap<>();
+            agent.put("name", agentName);
+            agent.put("task", task);
+            agent.put("type", opType);
+            agent.put("sessionId", sid);
+            agent.put("messageCount", sessionRecords.size());
+            agent.put("lastActiveAt", lastRec.getCreatedAt() != null ? lastRec.getCreatedAt().toString() : "");
+            activeAgents.add(agent);
+        }
+        // 按最近活跃时间排序
+        activeAgents.sort((a, b) -> ((String) b.get("lastActiveAt")).compareTo((String) a.get("lastActiveAt")));
+
+        // ── toolCalls ──
+        List<Map<String, Object>> toolCalls = new ArrayList<>();
+        for (ConversationRecord r : records) {
+            if (r.getToolName() != null && !r.getToolName().isBlank()) {
+                Map<String, Object> tc = new LinkedHashMap<>();
+                tc.put("id", "tc-" + r.getId());
+                tc.put("tool", r.getToolName());
+                tc.put("sessionId", r.getSessionId());
+                tc.put("status", r.getToolResult() != null
+                        && (r.getToolResult().contains("error") || r.getToolResult().contains("失败"))
+                        ? "error" : "completed");
+                tc.put("startTime", r.getCreatedAt() != null
+                        ? r.getCreatedAt().toString().substring(11, 19) : "");
+                tc.put("duration", r.getProcessingTimeMs() != null
+                        ? String.format("%.1fs", r.getProcessingTimeMs() / 1000.0) : null);
+                String result = r.getToolResult();
+                if (result != null && result.length() > 30) result = result.substring(0, 30) + "...";
+                tc.put("result", result);
+                toolCalls.add(tc);
+            }
+        }
+
+        // ── executionLogs ──
+        List<Map<String, Object>> logs = new ArrayList<>();
+        int logLimit = Math.min(records.size(), 50);
+        for (int i = 0; i < logLimit; i++) {
+            ConversationRecord r = records.get(i);
+            String opType = r.getOperationType();
+            if (opType == null || opType.isBlank()) opType = "chat";
+            String agentName = typeNameMap.getOrDefault(opType, opType + " Agent");
+            String logType = "info";
+            if (r.getToolName() != null && !r.getToolName().isBlank()) {
+                logType = r.getToolResult() != null
+                        && (r.getToolResult().contains("error") || r.getToolResult().contains("失败"))
+                        ? "error" : "success";
+            }
+
+            String message = r.getContent();
+            if (message == null && r.getToolName() != null) {
+                message = "调用工具: " + r.getToolName();
+            }
+            if (message != null && message.length() > 80) {
+                message = message.substring(0, 80) + "...";
+            }
+
+            Map<String, Object> logEntry = new LinkedHashMap<>();
+            logEntry.put("id", "log-" + r.getId());
+            logEntry.put("timestamp", r.getCreatedAt() != null
+                    ? r.getCreatedAt().toString().substring(11, 19) : "");
+            logEntry.put("type", logType);
+            logEntry.put("agent", agentName);
+            logEntry.put("message", message != null ? message : "");
+            logs.add(logEntry);
+        }
+
+        // ── stats ──
+        long totalToolCalls = records.stream().filter(r -> r.getToolName() != null && !r.getToolName().isBlank()).count();
+        long totalErrs = records.stream().filter(r -> r.getToolResult() != null
+                && (r.getToolResult().contains("error") || r.getToolResult().contains("失败"))).count();
+        double successRate = toolCalls.isEmpty() ? 100.0
+                : Math.round((1.0 - (double) totalErrs / toolCalls.size()) * 1000.0) / 10.0;
+
+        double avgLatency = records.stream()
+                .filter(r -> r.getProcessingTimeMs() != null)
+                .mapToLong(ConversationRecord::getProcessingTimeMs)
+                .average().orElse(0.0);
+        String avgLatencyStr = avgLatency > 1000
+                ? String.format("%.1fs", avgLatency / 1000)
+                : String.format("%.0fms", avgLatency);
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("activeAgents", bySession.size());
+        stats.put("toolCalls", toolCalls.size());
+        stats.put("successRate", successRate);
+        stats.put("avgLatency", avgLatencyStr);
+
+        return ResponseEntity.ok(Map.of(
+                "activeAgents", activeAgents,
+                "toolCalls", toolCalls,
+                "logs", logs,
+                "stats", stats
         ));
     }
 

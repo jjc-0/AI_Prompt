@@ -26,7 +26,7 @@ public class JCClawService {
     private static final Path ACCOUNTS_INDEX = STATE_DIR.resolve("openclaw-weixin").resolve("accounts.json");
 
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final WeChatBotService weChatBot;
 
     private String currentQrcode;
@@ -35,6 +35,48 @@ public class JCClawService {
     private String userId;
 
     public JCClawService(WeChatBotService weChatBot) { this.weChatBot = weChatBot; }
+
+    /** 服务启动时或需要时从磁盘加载凭证并恢复 Bot 连接 */
+    @jakarta.annotation.PostConstruct
+    public void restoreFromDisk() {
+        try {
+            if (!Files.exists(ACCOUNTS_INDEX)) {
+                log.info("未找到已保存的微信凭证，跳过自动恢复");
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            List<String> ids = objectMapper.readValue(Files.readString(ACCOUNTS_INDEX), List.class);
+            if (ids == null || ids.isEmpty()) {
+                log.info("凭证索引为空，跳过自动恢复");
+                return;
+            }
+
+            String id = ids.get(0);
+            Path acctFile = ACCOUNTS_DIR.resolve(id + ".json");
+            if (!Files.exists(acctFile)) {
+                log.warn("凭证文件不存在: {}", acctFile);
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> acct = objectMapper.readValue(Files.readString(acctFile), Map.class);
+            String token = (String) acct.get("token");
+            if (token == null || token.isBlank()) {
+                log.warn("凭证文件中无 token: {}", acctFile);
+                return;
+            }
+
+            this.botToken = token;
+            this.accountId = id;
+            this.userId = (String) acct.get("userId");
+
+            weChatBot.start(botToken, accountId, userId);
+            log.info("已从磁盘恢复微信 Bot 连接: accountId={}", accountId);
+        } catch (Exception e) {
+            log.warn("自动恢复微信 Bot 连接失败: {}", e.getMessage());
+        }
+    }
 
     /** 发起扫码绑定（清除旧凭证后获取新二维码） */
     public Map<String, Object> startLogin(String openclawHome) throws Exception {
@@ -81,10 +123,19 @@ public class JCClawService {
                     userId = (String) data.get("ilink_user_id");
                     currentQrcode = null;
                     saveCredentials();
-                    weChatBot.start(botToken, accountId);
+                    weChatBot.start(botToken, accountId, userId);
                     result.put("connected", true);
                 }
-                case "binded_redirect" -> { result.put("connected", true); result.put("alreadyConnected", true); currentQrcode = null; }
+                case "binded_redirect" -> {
+                    // iLink 服务器已有绑定会话，尝试从磁盘加载凭证自动恢复
+                    if (!weChatBot.isRunning()) {
+                        log.info("检测到已有绑定会话，尝试从磁盘恢复...");
+                        restoreFromDisk();
+                    }
+                    result.put("connected", weChatBot.isRunning());
+                    result.put("alreadyConnected", true);
+                    currentQrcode = null;
+                }
                 case "expired" -> { result.put("expired", true); currentQrcode = null; }
             }
         } catch (Exception e) { log.debug("轮询: {}", e.getMessage()); }
